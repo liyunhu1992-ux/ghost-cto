@@ -83,8 +83,26 @@ export function generateBossDashboard(workspace, audit) {
           .join('')
       : `<span class="muted">自动端口（双击项目文件夹内的「双击启动项目」即可自动打开网页）</span>`;
 
-  const findingsHtml =
-    audit.findings.length === 0
+  const isZeroCodeStarter = workspace.codeFiles.length === 0;
+  const displayVerdict = isZeroCodeStarter
+    ? '🌱 零基础起飞画布已就绪！8 大 AI 软件防崩护栏已装好，在下方写一句你的想法即可开启第一次 Vibe Coding！'
+    : audit.launchVerdict;
+
+  const findingsHtml = isZeroCodeStarter
+    ? `<div class="finding-card" style="border-left: 5px solid #059669; background: #F0FDF4;">
+        <h3 class="finding-title" style="font-size: 18px; color: #065F46;">🌱 欢迎开启你的 Vibe Coding 之旅！（当前文件夹还是空白画布）</h3>
+        <p class="finding-desc" style="color: #064E3B;">完全不懂代码也没关系！GhostCTO 已经帮你把防崩护栏、数据库真落库铁律和后悔药时光机全部装好了。现在只需<strong>用中文大白话写下你想做的东西</strong>，点下方绿色按钮复制第一句指令，粘贴进豆包 / Trae / 腾讯 WorkBuddy / Cursor 就能稳稳开工：</p>
+        <div class="filter-row" style="margin-bottom: 8px;">
+          <button type="button" class="filter-pill" onclick="fillStarterIdea('我想做一个清爽好用的门店预约与记账小工具，手机和电脑网页都能打开，数据重启不能丢')">💡 灵感1：预约记账小工具</button>
+          <button type="button" class="filter-pill" onclick="fillStarterIdea('我想做一个背单词与每日打卡学习网页，能添加自己的词库并统计连续打卡天数')">💡 灵感2：打卡学习小网站</button>
+          <button type="button" class="filter-pill" onclick="fillStarterIdea('我想做一个个人作品集与客户留言收集网站，界面干净高级，后台能查看导出留言')">💡 灵感3：个人主页与表单</button>
+        </div>
+        <input id="starter-idea-input" class="topic-input" style="background:#FFF; border-color:#86EFAC;" type="text" placeholder="✍️ 在这里用大白话写下你想做的软件、网页或小工具..." />
+        <div style="margin-top: 12px;">
+          <button type="button" class="live-action-btn" style="padding: 10px 18px; font-size: 14px;" onclick="copyZeroToOneKickoff()">🚀 一键生成并复制「小白第一句 Vibe Coding 开局神令」</button>
+        </div>
+      </div>`
+    : audit.findings.length === 0
       ? `<div class="empty-ok">🎉 太稳了！当前没有检测到假数据、空吞报错、裸奔管理接口或断头按钮，可以放心体验和交付。</div>`
       : audit.findings
           .map((f, idx) => {
@@ -402,7 +420,7 @@ export function generateBossDashboard(workspace, audit) {
     </div>
 
     <div class="verdict-banner">
-      <span>🚦 上线安检结论：${escHtml(audit.launchVerdict)}</span>
+      <span>🚦 上线安检结论：${escHtml(displayVerdict)}</span>
       <button class="copy-btn" data-copy="请读取项目里的体检结果，先存一个时光机备份，然后按优先级帮我修好所有 P0 致命问题，不要改动正常业务！">🚀 复制「一键全自动排雷」总指令</button>
     </div>
 
@@ -551,6 +569,22 @@ export function generateBossDashboard(workspace, audit) {
         const c = card.getAttribute('data-pcat');
         card.style.display = (cat === 'all' || c === cat) ? 'block' : 'none';
       });
+    }
+    function fillStarterIdea(val) {
+      const inp = document.getElementById('starter-idea-input');
+      if (inp) inp.value = val;
+    }
+    function copyZeroToOneKickoff() {
+      const inp = document.getElementById('starter-idea-input');
+      const idea = inp && inp.value && inp.value.trim() ? inp.value.trim() : '做一个简洁实用的全栈网页小工具，支持真实保存数据';
+      const prompt = [
+        '我是完全零代码基础的 Vibe Coding 创作者，我想从 0 到 1 做这个作品：「' + idea + '」。',
+        '请你作为我的影子 CTO 严格遵守以下规则：',
+        '1. 技术选型全由你按最稳、最轻量的本地全栈方案拍板（默认 Node.js + SQLite 真实落库，严禁只存内存假数组，严禁反问我任何英文技术名词）。',
+        '2. 先管住手别急着写代码：用大白话每次只问我 1 个最关键的功能选择题（最多问 3 个问题），等我说“开工”后再动手。',
+        '3. 界面审美要干净高级（米白底、清晰排版，拒绝廉价紫蓝渐变与假数字），做好后自动跑通 ghost-cto audit 真假体检并让我双击《双击启动项目》就能直接打开网页体验！'
+      ].join('\\n');
+      copySafe(prompt);
     }
     function copySafe(text) {
       const okMsg = '✅ 已复制指令！直接去 WorkBuddy / 豆包 / Antigravity 粘贴发送即可';

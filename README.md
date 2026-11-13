@@ -4,10 +4,10 @@
 
 # GhostCTO（影子 CTO）
 
-### **「给不懂代码的创始人配一个 0 Token 验真假的『影子 CTO』。」**
+### **「让每一个零基础小白，都能真正把 Vibe Coding 玩起来、做出来、不翻车。」**
 
-**一行接入腾讯 WorkBuddy、豆包/Trae、CodeBuddy、Antigravity、Cursor、Claude Code：**  
-**你只管说人话提需求，它自动帮你抓假功能、锁死改动防连环崩、连代码带数据库一键后悔、生成老板看得懂的全中文驾驶舱。**
+**一行接入豆包/Trae、腾讯 WorkBuddy、CodeBuddy、Antigravity、Cursor、Claude Code：**  
+**哪怕你一行英文代码都看不懂——从空白文件夹的第 1 句大白话开始，它自动替你拍板技术、0 Token 抓 AI 假按钮、锁死改动防连环崩、连代码带数据库一键吃后悔药。**
 
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-0_(Pure_Node_Built--ins)-059669?style=flat-square)](#)
 [![Token Cost](https://img.shields.io/badge/Audit_Token_Cost-0_Tokens_(Local_AST_Lexer)-2563EB?style=flat-square)](#)

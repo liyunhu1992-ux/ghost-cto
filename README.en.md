@@ -4,10 +4,10 @@
 
 # GhostCTO (影子 CTO) v2.0
 
-### **"A Zero-Token Product Reality Engine, Live Visual Cockpit & Atomic Safety Harness for Non-Technical Vibe Coders."**
+### **"Built so complete beginners can actually Vibe Code real, working software — without getting fooled by fake AI code."**
 
-**One-click install across Tencent WorkBuddy, CodeBuddy, Doubao/Trae, Google Antigravity, Cursor, Claude Code, Windsurf, and OpenAI Codex.**  
-**Speak plain language — GhostCTO catches fake in-memory features, blocks secret leaks before `git commit`, locks edit blast-radius, snapshots Code + SQLite atomically, injects real project topology into elite prompts, and renders a Dual-Mode Live + Offline Visual Cockpit.**
+**Zero-CLI install across Tencent WorkBuddy, CodeBuddy, Doubao/Trae, Google Antigravity, Cursor, Claude Code, Windsurf, and OpenAI Codex.**  
+**From an empty folder's very first plain-language idea to production launch — GhostCTO decides tech stacks for you, catches fake in-memory buttons at 0 tokens, blocks secret leaks before `git commit`, snapshots Code + SQLite atomically, and gives you a visual cockpit in plain human language.**
 
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-0_(Pure_Node_Built--ins)-059669?style=flat-square)](#)
 [![Audit Token Cost](https://img.shields.io/badge/Audit_Token_Cost-0_Tokens_(Deterministic_Lexer)-2563EB?style=flat-square)](#)
