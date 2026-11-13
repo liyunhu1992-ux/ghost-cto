@@ -70,7 +70,7 @@ test('Polyglot & Embedded String.raw / HTML / Python FastAPI Reality Audit catch
 test('Live OS Subprocess MCP Pipe Handshake (Newline + Content-Length) & Full Self-Trial (`ghost-cto try`)', async () => {
   const trialRes = await runSelfTrial();
   assert.equal(trialRes.ok, true);
-  assert.equal(trialRes.steps.length, 5);
+  assert.equal(trialRes.steps.length, 6);
 
   const tmpProj = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-cto-doc-'));
   try {

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { listCheckpoints } from './time-capsule.mjs';
 import { detectRuntimeTopology } from './memory-capsule.mjs';
+import { buildMasterPromptArsenal } from './prompt-arsenal.mjs';
 
 function escHtml(str) {
   return String(str ?? '')
@@ -20,6 +21,8 @@ export function generateBossDashboard(workspace, audit) {
   const runtime = detectRuntimeTopology(workspace);
   const checkpoints = listCheckpoints(workspace.rootDir);
   const chains = audit.lineage.chains;
+  const masterPrompts = buildMasterPromptArsenal(workspace, audit, '');
+  const masterTemplates = buildMasterPromptArsenal(workspace, audit, '__BOSS_TOPIC__');
 
   const realCount = chains.filter(c => c.badge.startsWith('🟢')).length;
   const fakeOrWarnCount = chains.filter(c => c.badge.startsWith('🟡')).length;
@@ -79,6 +82,29 @@ export function generateBossDashboard(workspace, audit) {
         <td class="muted-code">${escHtml(c.frontend)} → ${escHtml(c.backend)}</td>
       </tr>`
     )
+    .join('\n');
+
+  const masterPromptsHtml = masterPrompts
+    .map((mp, idx) => {
+      const tplObj = masterTemplates[idx];
+      return `
+      <div class="finding-card prompt-card" data-pcat="${escHtml(mp.category)}">
+        <div class="finding-head">
+          <div>
+            <span class="sev-tag sev-master">${escHtml(mp.badge)}</span>
+            <span class="file-loc">${escHtml(mp.inspiration)}</span>
+          </div>
+          <button class="copy-btn master-copy-btn" data-copy="${escHtml(mp.prompt)}" data-template="${escHtml(tplObj.prompt)}">📋 一键复制大师指令（已注入本项目家底）</button>
+        </div>
+        <h3 class="finding-title">${idx + 1}. ${escHtml(mp.title)}</h3>
+        <p class="finding-desc"><strong>什么时候用：</strong>${escHtml(mp.whenToUse)}</p>
+        <p class="finding-desc" style="margin-top:-4px;"><strong>为什么管用：</strong>${escHtml(mp.whyItWorks)}</p>
+        <details class="prompt-details">
+          <summary>👀 点击展开查看完整指令内容（已自动带入 ${escHtml(runtime.projectName)} 的数据表与打包护栏）</summary>
+          <pre class="prompt-raw">${escHtml(mp.prompt)}</pre>
+        </details>
+      </div>`;
+    })
     .join('\n');
 
   const checkpointsHtml =
@@ -207,6 +233,7 @@ export function generateBossDashboard(workspace, audit) {
     .finding-card.sev-p0 { border-left: 5px solid var(--red); }
     .finding-card.sev-p1 { border-left: 5px solid var(--amber); }
     .finding-card.sev-p2 { border-left: 5px solid var(--accent); }
+    .finding-card.prompt-card { border-left: 5px solid #18181B; }
     .finding-head {
       display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;
     }
@@ -214,11 +241,33 @@ export function generateBossDashboard(workspace, audit) {
     .sev-tag.sev-p0 { background: #FEF2F2; color: var(--red); }
     .sev-tag.sev-p1 { background: #FFFBEB; color: var(--amber); }
     .sev-tag.sev-p2 { background: #EFF6FF; color: var(--accent); }
+    .sev-tag.sev-master { background: #F4F4F5; color: #18181B; border: 1px solid #E4E4E7; }
     .file-loc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); margin-left: 8px; }
     .finding-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
     .finding-desc { font-size: 14px; color: #3F3F46; margin-bottom: 10px; }
     .prompt-preview {
       background: #F4F4F5; border-radius: 8px; padding: 9px 12px; font-size: 12.5px; color: #52525B;
+    }
+    .arsenal-hero {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 18px 20px; margin-bottom: 16px;
+    }
+    .topic-input {
+      width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid #D4D4D8;
+      font-size: 14px; margin-top: 10px; background: #FAFAF9; color: var(--text);
+    }
+    .topic-input:focus { outline: 2px solid var(--accent); border-color: transparent; background: #FFF; }
+    .filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .filter-pill {
+      padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border);
+      background: #F4F4F5; color: var(--muted); font-size: 12.5px; font-weight: 600; cursor: pointer;
+    }
+    .filter-pill.active { background: var(--primary); color: #FFF; border-color: var(--primary); }
+    .prompt-details { margin-top: 8px; background: #FAFAF9; border: 1px solid var(--border); border-radius: 9px; padding: 8px 12px; }
+    .prompt-details summary { font-size: 12.5px; font-weight: 600; color: var(--accent); cursor: pointer; }
+    .prompt-raw {
+      margin-top: 10px; white-space: pre-wrap; word-break: break-word; font-size: 12.5px;
+      line-height: 1.55; color: #27272A; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", monospace;
     }
     .copy-btn {
       background: var(--primary); color: #FFF; border: none; border-radius: 8px;
@@ -293,6 +342,7 @@ export function generateBossDashboard(workspace, audit) {
 
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('risks', this)">🚨 白话隐患与一键修复 (${audit.findings.length})</button>
+      <button class="tab-btn" onclick="switchTab('prompts', this)">✨ 大师级神级提示词 (${masterPrompts.length})</button>
       <button class="tab-btn" onclick="switchTab('lineage', this)">🔬 全栈功能真假透视表 (${chains.length})</button>
       <button class="tab-btn" onclick="switchTab('timemachine', this)">⏪ 后悔药时光机 & 多软件接力 (${checkpoints.length})</button>
       <button class="tab-btn" onclick="switchTab('sos', this)">🆘 小白英文弹窗 & 打不开急救卡</button>
@@ -300,6 +350,21 @@ export function generateBossDashboard(workspace, audit) {
 
     <div id="panel-risks" class="panel active">
       ${findingsHtml}
+    </div>
+
+    <div id="panel-prompts" class="panel">
+      <div class="arsenal-hero">
+        <h3 class="finding-title">✨ 卡兹克 (KKKKhazix) & 全网封神提示词库（0 平时 Token 消耗 · 已自动注入本项目家底）</h3>
+        <p class="finding-desc" style="margin-bottom: 4px;">不用自己背提示词！在下面框里用一句大白话写下你想干的事（不填也能直接复制），点任意卡片的按钮，就会把<strong>你的想法 + 本项目真实数据表与防崩护栏</strong>一起打包复制好，直接粘贴进 WorkBuddy / 豆包 / Trae / Antigravity 即可：</p>
+        <input id="boss-topic-input" class="topic-input" type="text" placeholder="✍️ 选填：在这里输入一句你的想法（例如：加一个客户积分兑换功能 / 把管理后台界面改高级一点）..." />
+        <div class="filter-row">
+          <button class="filter-pill active" onclick="filterPrompts('all', this)">全部精选 (${masterPrompts.length})</button>
+          <button class="filter-pill" onclick="filterPrompts('khazix', this)">🔥 卡兹克实战方法论 (4)</button>
+          <button class="filter-pill" onclick="filterPrompts('engineering', this)">🔪 Karpathy 防崩与死循环破局 (2)</button>
+          <button class="filter-pill" onclick="filterPrompts('design', this)">🎨 去 AI 塑料味高定界面与文案 (2)</button>
+        </div>
+      </div>
+      ${masterPromptsHtml}
     </div>
 
     <div id="panel-lineage" class="panel">
@@ -362,7 +427,7 @@ export function generateBossDashboard(workspace, audit) {
     </div>
   </div>
 
-  <div id="toast" class="toast">✅ 已复制修复话术！直接去 WorkBuddy / 豆包 / Antigravity 粘贴发送即可</div>
+  <div id="toast" class="toast">✅ 已复制指令！直接去 WorkBuddy / 豆包 / Antigravity 粘贴发送即可</div>
 
   <script>
     function switchTab(id, btn) {
@@ -370,6 +435,14 @@ export function generateBossDashboard(workspace, audit) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('panel-' + id).classList.add('active');
       btn.classList.add('active');
+    }
+    function filterPrompts(cat, btn) {
+      document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+      if (btn && btn.classList) btn.classList.add('active');
+      document.querySelectorAll('.prompt-card').forEach(card => {
+        const c = card.getAttribute('data-pcat');
+        card.style.display = (cat === 'all' || c === cat) ? 'block' : 'none';
+      });
     }
     function copySafe(text) {
       function showOk() {
@@ -396,7 +469,13 @@ export function generateBossDashboard(workspace, audit) {
     }
     document.querySelectorAll('.copy-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const text = btn.getAttribute('data-copy');
+        const topicInput = document.getElementById('boss-topic-input');
+        const customVal = topicInput && topicInput.value ? topicInput.value.trim() : '';
+        const tpl = btn.getAttribute('data-template');
+        let text = btn.getAttribute('data-copy');
+        if (tpl && customVal) {
+          text = tpl.split('__BOSS_TOPIC__').join(customVal);
+        }
         if (!text) return;
         copySafe(text);
       });

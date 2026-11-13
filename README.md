@@ -11,7 +11,7 @@
 
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-0_(Pure_Node_Built--ins)-059669?style=flat-square)](#)
 [![Token Cost](https://img.shields.io/badge/Audit_Token_Cost-0_Tokens_(Local_AST_Lexer)-2563EB?style=flat-square)](#)
-[![Always-On Prompt](https://img.shields.io/badge/Router_Footprint-387_Tokens_(90%25_KV_Cached)-7C3AED?style=flat-square)](#)
+[![Always-On Prompt](https://img.shields.io/badge/Router_Footprint-410_Tokens_(90%25_KV_Cached)-7C3AED?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-18181B?style=flat-square)](./LICENSE)
 
 [**English README**](./README.en.md) ｜ [**安装与国内软件配置指南**](./INSTALL.md) ｜ [**小白英文弹窗急救手册**](./docs/POPUP_DICTIONARY.md) ｜ [**安全说明**](./SECURITY.md)
@@ -65,8 +65,24 @@
 
 **GhostCTO 采用三层「零废话编译器级省流架构」：**
 1. **重活全部交给本地 Node.js 引擎（消耗 `0 LLM Token`）**：词法去噪、跨包 AST 函数调用链追踪、前后端接口对账、SQLite 数据库快照全部在本地 CPU `< 80 毫秒` 算完，只把 `< 220 tokens` 的精准 `文件:行号` 坐标喂给大模型！
-2. **常驻路由锁死 `387 tokens` 且 100% 字节级静态不变**：完美命中各大模型底层的 **KV Prefix Cache（前缀缓存 90% 费用折扣）**，每轮对话实际计费仅折合 **`~39 tokens`**！
-3. **6 大专业技能包按需懒加载（每个仅 `247～489 tokens`）**：平时睡觉 `0 消耗`，说到哪句激活哪个。
+2. **常驻路由锁死 `410 tokens` 且 100% 字节级静态不变**：融合 Karpathy 极简第一性原理，完美命中各大模型底层的 **KV Prefix Cache（前缀缓存 90% 费用折扣）**，每轮对话实际计费仅折合 **`~41 tokens`**！
+3. **7 大专业技能包 + 8 套大师提示词库按需懒加载（每个技能仅 `247～489 tokens`，提示词库平时 `0 Token`）**：融合 **数字生命卡兹克 (KKKKhazix)** 苏格拉底单问法、**Andrej Karpathy** 外科手术铁律与 **Linear/Stripe 去 AI 塑料味高定审美**，平时睡觉 `0 消耗`，用到哪句点哪个！
+
+---
+
+## ✨ 内置「数字生命卡兹克 & 全网封神」大师提示词引擎（动态注入真实家底！）
+
+普通开源提示词仓库只给你一堆空白模板，AI 依然不知道你项目里有哪些真实数据表、跑在哪个端口、改完要不要重新打包。  
+**GhostCTO 独创「0 常驻 Token · 家底动态注入弹药库」（`kernel/prompt-arsenal.mjs`）**：打开《老板全景驾驶舱.html》切换到 **`✨ 大师级神级提示词 (8)`** 标签页，输入一句你的想法点复制，自动把**你的想法 + 本项目真实 SQLite 表名 + 端口 + 前端打包护栏**打包好：
+
+1. 🔥 **苏格拉底式「单问澄清」立项令**（源自卡兹克追问法：先管住手，每次只问 1 个生意选择题，最多 4 问收口）
+2. 🌍 **Karpathy 极简外科手术防崩令**（源自 GitHub 21万星 `CLAUDE.md`：最少代码、绕远路主动劝阻、严禁动无关代码）
+3. 🎨 **去 AI 塑料味 · Linear/Stripe 高定界面重塑令**（封杀廉价紫蓝渐变、Emoji 卡片汤与编造假数字）
+4. 🧯 **三连败死循环 · 强制急刹车破局令**（同一个 Bug 改了 3 遍还没好时一键叫停，6 步全链路捉真凶）
+5. 👑 **顶尖领域专家选角 · 商业与产品问诊令**（源自卡兹克专家选角法：先选最毒辣内行，砍掉伪需求）
+6. 🚀 **防跑偏任务书 · 负面边界施工蓝图令**（灵感自 `khazix-skills/leader`：明确「第一版坚决不做清单」）
+7. 🧹 **代码·记忆·驾驶舱「三层洁癖同步」令**（灵感自 `khazix-skills/neat-freak`：彻底消灭换软件失忆与脑腐）
+8. ✍️ **去 AI 爹味与黑话 · 商业页面文案洗稿令**（灵感自卡兹克四检法：清剿“赋能/抓手/闭环”，全改说人话）
 
 ---
 
@@ -112,7 +128,8 @@ npx ghost-cto init /path/to/your-project
 | :--- | :--- |
 | `ghost-cto try` | 在本机沙箱自动跑完 1 秒全链路真机演练（测试 8 平台安装、MCP 跨进程通信、抓假功能与数据库回退） |
 | `ghost-cto init [目录]` | 一键同步 8 大国内外软件规则/Skills/MCP（增量合并绝不覆盖原有工具）+ 创建初始存档 + 生成驾驶舱 |
-| `ghost-cto doctor [目录]` | 19 项真机体检：核验各软件配置文件、Token 预算，并从外部目录拉起真实子进程测试双协议 MCP 通信 |
+| `ghost-cto doctor [目录]` | 21 项真机体检：核验各软件配置文件、Token 预算，并从外部目录拉起真实子进程测试双协议 MCP 通信 |
+| `ghost-cto prompts [目录]` / `ghost_master_prompt` | 按需导出自动注入本项目真实数据表、端口与打包护栏的 8 套大师级提示词（卡兹克 & Karpathy 精选） |
 | `ghost-cto audit [目录]` / `ghost_reality_audit` | 10 维真假功能与商用上线安检（抓样板房空壳、假保存、裸奔 `/api/admin`、空吞错、泄漏密钥） |
 | `ghost-cto xray [目录]` / `ghost_xray_lineage` | 绘制 `前端 -> API -> 跨包函数 -> SQLite 表 / 真实外部大模型` 全栈穿透表（支持 JS/TS/JSX/HTML/Python） |
 | `ghost-cto impact "按钮中文名"` / `ghost_blast_radius` | 改代码前按中文界面词或模块名锁定最小修改文件集与必跑打包命令 |

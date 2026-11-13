@@ -5,8 +5,9 @@ import { scanWorkspace } from './scanner.mjs';
 import { runRealityAudit, formatAuditReport } from './reality-audit.mjs';
 import { formatLineageReport } from './lineage-graph.mjs';
 import { saveCheckpoint, listCheckpoints } from './time-capsule.mjs';
-import { writeMemoryCapsule } from './memory-capsule.mjs';
+import { writeMemoryCapsule, detectRuntimeTopology } from './memory-capsule.mjs';
 import { generateBossDashboard, generateSelfHealingLaunchers } from './boss-dashboard.mjs';
+import { buildMasterPromptArsenal, formatPromptArsenalReport } from './prompt-arsenal.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const GHOST_PACKAGE_ROOT = path.resolve(__dirname, '..');
@@ -170,9 +171,16 @@ export function installGhostCTO(targetRootDir, options = {}) {
   const audit = runRealityAudit(ws);
   const auditReports = formatAuditReport(audit);
   const lineageReports = formatLineageReport(audit.lineage);
+  const runtime = detectRuntimeTopology(ws);
+  const masterPrompts = buildMasterPromptArsenal(ws, audit, '');
 
   fs.writeFileSync(path.join(absTarget, '.vibe', '体检报告.md'), auditReports.founderMarkdown + '\n', 'utf8');
   fs.writeFileSync(path.join(absTarget, '.vibe', '全栈真假穿透图.md'), lineageReports.founderMarkdown + '\n', 'utf8');
+  fs.writeFileSync(
+    path.join(absTarget, '.vibe', '大师级提示词库.md'),
+    formatPromptArsenalReport(masterPrompts, runtime.projectName) + '\n',
+    'utf8'
+  );
 
   const capsuleInfo = writeMemoryCapsule(ws, audit);
   const dashboardInfo = generateBossDashboard(ws, audit);

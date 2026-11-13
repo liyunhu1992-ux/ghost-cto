@@ -8,6 +8,7 @@ import { scanWorkspace } from './scanner.mjs';
 import { runRealityAudit } from './reality-audit.mjs';
 import { computeBlastRadius } from './blast-radius.mjs';
 import { saveCheckpoint, rewindCheckpoint } from './time-capsule.mjs';
+import { buildMasterPromptArsenal } from './prompt-arsenal.mjs';
 
 /**
  * Spawn the project's vendored MCP server as a real child process with `cwd = os.tmpdir()`
@@ -115,6 +116,7 @@ export async function runDoctor(targetRootDir) {
     { rel: 'AGENTS.md', label: '通用静态路由 (AGENTS.md)' },
     { rel: '.workbuddy/mcp.json', label: '腾讯 WorkBuddy MCP 配置' },
     { rel: '.workbuddy/skills/cto-translator/SKILL.md', label: '腾讯 WorkBuddy 技能包' },
+    { rel: '.workbuddy/skills/ui-anti-slop/SKILL.md', label: '去 AI 塑料味高定审美技能包' },
     { rel: '.codebuddy/CODEBUDDY.md', label: '腾讯 CodeBuddy 主规则' },
     { rel: '.trae/rules/project_rules.md', label: '字节 豆包/Trae 项目规则' },
     { rel: '.trae/mcp.json', label: '字节 豆包/Trae MCP 配置' },
@@ -126,6 +128,7 @@ export async function runDoctor(targetRootDir) {
     { rel: '.cursor/rules/ghost-cto.mdc', label: 'Cursor 规则 (.mdc)' },
     { rel: 'CLAUDE.md', label: 'Claude Code 入口指针' },
     { rel: '老板全景驾驶舱.html', label: '老板离线中文可视化驾驶舱' },
+    { rel: '.vibe/大师级提示词库.md', label: '项目专属大师级提示词弹药库' },
     { rel: '双击启动项目.command', label: 'macOS 双击自愈启动器' },
     { rel: '.vibe/capsule.md', label: '跨软件记忆胶囊 (.vibe/capsule.md)' }
   ];
@@ -163,15 +166,15 @@ export async function runDoctor(targetRootDir) {
     const elapsed = Date.now() - startMs;
 
     const mcpOk =
-      nlRes.tools?.result?.tools?.length === 6 &&
+      nlRes.tools?.result?.tools?.length === 7 &&
       nlRes.auditCall?.result?.isError === false &&
-      clRes.tools?.result?.tools?.length === 6 &&
+      clRes.tools?.result?.tools?.length === 7 &&
       clRes.auditCall?.result?.isError === false;
 
     checks.push({
       name: '真实子进程 MCP 双协议通信自检 (从外部目录拉起)',
       ok: mcpOk,
-      detail: `6 工具全通，往返耗时 ${elapsed}ms`
+      detail: `7 工具全通，往返耗时 ${elapsed}ms`
     });
   } else {
     checks.push({ name: '真实子进程 MCP 通信自检', ok: false, detail: '未找到 mcp.json' });
@@ -183,7 +186,7 @@ export async function runDoctor(targetRootDir) {
 
 /**
  * End-to-end live sandbox simulation (`ghost-cto try`) so any user can verify
- * all 6 GhostCTO subsystems on their own machine in ~1 second.
+ * all GhostCTO subsystems on their own machine in ~1 second.
  */
 export async function runSelfTrial() {
   const trialRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-cto-try-'));
@@ -246,7 +249,7 @@ export async function runSelfTrial() {
     // 2. Run Doctor (spawning live MCP server subprocess over OS pipes)
     const doc = await runDoctor(trialRoot);
     if (!doc.allPassed) throw new Error('Doctor check failed during self-trial');
-    steps.push(`2. 真实跨目录 MCP 子进程握手通过（WorkBuddy / 豆包 / Antigravity / Cursor 协议全通）`);
+    steps.push(`2. 真实跨目录 MCP 子进程握手通过（WorkBuddy / 豆包 / Antigravity / Cursor 7 工具全通）`);
 
     // 3. Verify Reality Audit caught all planted traps at 0 LLM tokens
     const ws = scanWorkspace(trialRoot);
@@ -269,6 +272,13 @@ export async function runSelfTrial() {
     rewindCheckpoint(trialRoot, cp.id);
     if (!fs.readFileSync(dbFile).equals(goodBytes)) throw new Error('SQLite byte recovery mismatch');
     steps.push(`5. 代码 + SQLite 数据库双轨时光机破坏性回退验证 100% 字节级一致通过`);
+
+    // 6. Verify Context-Injected Master Prompt Arsenal (卡兹克 & Karpathy 精选)
+    const arsenal = buildMasterPromptArsenal(ws, audit, '新增会员积分商城');
+    if (arsenal.length !== 8 || !arsenal[0].prompt.includes('demo-vibe-saas') || !arsenal[0].prompt.includes('新增会员积分商城')) {
+      throw new Error('Master Prompt Arsenal context injection failed');
+    }
+    steps.push(`6. 卡兹克 & Karpathy 大师级提示词引擎上下文注入通过（${arsenal.length} 套神级指令就绪）`);
 
     return { ok: true, steps };
   } finally {

@@ -6,6 +6,7 @@ import { computeBlastRadius } from './blast-radius.mjs';
 import { saveCheckpoint, rewindCheckpoint, listCheckpoints } from './time-capsule.mjs';
 import { writeMemoryCapsule, learnScar } from './memory-capsule.mjs';
 import { generateBossDashboard } from './boss-dashboard.mjs';
+import { buildMasterPromptArsenal, getMasterPromptById } from './prompt-arsenal.mjs';
 
 const MCP_TOOLS = [
   {
@@ -78,6 +79,23 @@ const MCP_TOOLS = [
         learnRule: { type: 'string', description: '可选：顺便记录一条本次修好的踩坑铁律到免疫库' }
       }
     }
+  },
+  {
+    name: 'ghost_master_prompt',
+    description:
+      '【卡兹克 & Karpathy 大师级提示词引擎】按需提取自动注入本项目真实数据表、端口与静态打包护栏的 8 套神级防崩提示词（苏格拉底单问立项、Karpathy外科手术、去AI塑料味UI、死循环破局、专家选角、防脑腐同步等）。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scenario: {
+          type: 'string',
+          description:
+            '可选场景编号: khazix-socratic-mvp | karpathy-surgical-code | anti-ai-slop-ui | deadloop-bug-breaker | khazix-expert-council | mvp-negative-blueprint | khazix-neat-freak | khazix-human-copy | all'
+        },
+        topic: { type: 'string', description: '老板想做的具体事项（一句大白话）' },
+        projectDir: { type: 'string', description: '项目根目录路径（默认当前工作区）' }
+      }
+    }
   }
 ];
 
@@ -101,7 +119,7 @@ export function handleMcpRequest(msg, defaultRootDir = process.cwd()) {
           capabilities: { tools: {} },
           serverInfo: {
             name: 'ghost-cto',
-            version: '1.0.0'
+            version: '1.2.0'
           }
         }
       };
@@ -193,6 +211,17 @@ function executeToolCall(toolName, args, rootDir) {
       const cap = writeMemoryCapsule(ws, audit);
       const dash = generateBossDashboard(ws, audit);
       return `GHOST_DASHBOARD_READY|score:${audit.score}/100|dashboard:${path.basename(dash.rootOutPath)}|capsule_tokens:${cap.tokens}`;
+    }
+    case 'ghost_master_prompt': {
+      const ws = scanWorkspace(rootDir);
+      const audit = runRealityAudit(ws);
+      const scenario = args.scenario || 'all';
+      if (scenario === 'all') {
+        const list = buildMasterPromptArsenal(ws, audit, args.topic || '');
+        return list.map(p => `[${p.id}] ${p.title} — ${p.whenToUse}`).join('\n');
+      }
+      const item = getMasterPromptById(ws, audit, scenario, args.topic || '');
+      return item.prompt;
     }
     default:
       throw new Error(`Unknown GhostCTO tool: ${toolName}`);

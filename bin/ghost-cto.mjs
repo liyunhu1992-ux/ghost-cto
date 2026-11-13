@@ -6,8 +6,9 @@ import { buildLineageGraph, formatLineageReport } from '../kernel/lineage-graph.
 import { runRealityAudit, formatAuditReport } from '../kernel/reality-audit.mjs';
 import { computeBlastRadius } from '../kernel/blast-radius.mjs';
 import { saveCheckpoint, rewindCheckpoint, listCheckpoints } from '../kernel/time-capsule.mjs';
-import { writeMemoryCapsule, learnScar } from '../kernel/memory-capsule.mjs';
+import { writeMemoryCapsule, learnScar, detectRuntimeTopology } from '../kernel/memory-capsule.mjs';
 import { generateBossDashboard, generateSelfHealingLaunchers } from '../kernel/boss-dashboard.mjs';
+import { buildMasterPromptArsenal, getMasterPromptById, formatPromptArsenalReport } from '../kernel/prompt-arsenal.mjs';
 import { installGhostCTO, GHOST_PACKAGE_ROOT } from '../kernel/installer.mjs';
 import { startMcpStdioServer } from '../kernel/mcp-server.mjs';
 import { runDoctor, runSelfTrial } from '../kernel/doctor.mjs';
@@ -49,12 +50,13 @@ async function main() {
       const res = installGhostCTO(targetDir, {
         createInitialCheckpoint: flags['no-checkpoint'] ? false : true
       });
-      console.log(`\n🛡️  GhostCTO（影子 CTO）已在项目中激活完毕`);
+      console.log(`\n🛡️  GhostCTO（影子 CTO）v1.2.0 已在项目中激活完毕`);
       console.log(`📂 项目目录: ${res.rootDir}`);
       console.log(`📊 商用健康分: ${res.score} / 100 分 （P0致命:${res.p0Count} | P1高危:${res.p1Count} | P2提醒:${res.p2Count}）`);
       console.log(`🚦 上线结论: ${res.launchVerdict}`);
       console.log(`📦 初始时光机存档: ${res.initialCheckpointId || '已就绪'}`);
       console.log(`🧠 跨软件记忆胶囊: .vibe/capsule.md (${res.capsuleTokens} tokens)`);
+      console.log(`✨ 大师级提示词库: 已内置 8 套卡兹克/Karpathy 精选指令（自动注入本项目数据表与构建护栏）`);
       console.log(`🖥️  老板可视化驾驶舱: ${res.dashboardPath}`);
       console.log(`🚀 一键自愈启动器: ${res.macLauncherPath}`);
       console.log(`✅ 已同步适配 8 大国内外软件:`);
@@ -74,7 +76,7 @@ async function main() {
       if (!doc.allPassed) {
         process.exitCode = 1;
       } else {
-        console.log(`\n🎉 全部 19 项真机配置、Token 预算与跨进程 MCP 通信测试 100% 通过！`);
+        console.log(`\n🎉 全部 ${doc.checks.length} 项真机配置、Token 预算与跨进程 MCP 通信测试 100% 通过！`);
       }
       break;
     }
@@ -85,7 +87,23 @@ async function main() {
       for (const s of res.steps) {
         console.log(`  ✔ ${s}`);
       }
-      console.log(`\n🎉 试跑通过！本机所有内核模块、时光机与 MCP 服务均真实可用。`);
+      console.log(`\n🎉 试跑通过！本机所有内核模块、大师提示词引擎、时光机与 MCP 服务均真实可用。`);
+      break;
+    }
+
+    case 'prompts': {
+      const targetDir = resolveTargetDir(1);
+      const ws = scanWorkspace(targetDir);
+      const audit = runRealityAudit(ws);
+      const runtime = detectRuntimeTopology(ws);
+      const topic = flags.topic || '';
+      if (flags.id && flags.id !== 'all') {
+        const single = getMasterPromptById(ws, audit, flags.id, topic);
+        console.log(single.prompt);
+      } else {
+        const list = buildMasterPromptArsenal(ws, audit, topic);
+        console.log(formatPromptArsenalReport(list, runtime.projectName));
+      }
       break;
     }
 
@@ -200,19 +218,20 @@ async function main() {
 
     default: {
       console.log(`
-GhostCTO (影子 CTO) v1.1.0 — 不懂代码做产品的防忽悠、防改崩「影子 CTO」
+GhostCTO (影子 CTO) v1.2.0 — 不懂代码做产品的防忽悠、防改崩「影子 CTO」
 
 常用命令:
-  ghost-cto try                      在本机跑一遍 1 秒全自动真机试跑（验证全部 6 大模块是否正常）
-  ghost-cto init [项目目录]          一键激活 8 大国内外软件(WorkBuddy/豆包/Trae/Antigravity/Cursor等) + 生成驾驶舱
-  ghost-cto doctor [项目目录]        真机验证已安装项目的 8 大平台配置与跨进程 MCP 通信是否畅通
-  ghost-cto audit [项目目录] [--ai]  0-Token 扫描假落库、假开关、空吞错、裸奔后台与断头接口
-  ghost-cto xray [项目目录] [--ai]   0-Token 绘制 UI -> API -> 数据库 3D 真假穿透图
-  ghost-cto impact <关键词>          改代码前锁定最小修改爆炸半径（支持直接搜中文按钮名）
-  ghost-cto save "存档说明"          同时备份 Git 代码 + SQLite 数据库（双轨时光机）
-  ghost-cto rewind [存档编号]        一键后悔药：把代码和数据库一起退回好状态
-  ghost-cto dashboard [项目目录]     重新生成《老板全景驾驶舱.html》与《双击启动项目》
-  ghost-cto mcp                      启动零依赖 Stdio MCP 服务（供豆包桌面版/WorkBuddy/Trae/Cursor调用）
+  ghost-cto try                        在本机跑一遍 1 秒全自动真机试跑（验证全部 6 大内核模块）
+  ghost-cto init [项目目录]            一键激活 8 大国内外软件(WorkBuddy/豆包/Trae/Antigravity/Cursor等) + 生成驾驶舱
+  ghost-cto doctor [项目目录]          真机验证已安装项目的 8 大平台配置与跨进程 MCP 通信是否畅通
+  ghost-cto prompts [项目目录]         导出自动注入本项目家底的 8 套大师级提示词（卡兹克 & Karpathy 精选）
+  ghost-cto audit [项目目录] [--ai]    0-Token 扫描假落库、假开关、空吞错、裸奔后台与断头接口
+  ghost-cto xray [项目目录] [--ai]     0-Token 绘制 UI -> API -> 数据库 3D 真假穿透图
+  ghost-cto impact <关键词>            改代码前锁定最小修改爆炸半径（支持直接搜中文按钮名）
+  ghost-cto save "存档说明"            同时备份 Git 代码 + SQLite 数据库（双轨时光机）
+  ghost-cto rewind [存档编号]          一键后悔药：把代码和数据库一起退回好状态
+  ghost-cto dashboard [项目目录]       重新生成《老板全景驾驶舱.html》与《双击启动项目》
+  ghost-cto mcp                        启动零依赖 Stdio MCP 服务（供豆包桌面版/WorkBuddy/Trae/Cursor调用）
 `);
       break;
     }

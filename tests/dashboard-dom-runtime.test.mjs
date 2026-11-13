@@ -17,17 +17,19 @@ function decodeHtmlAttr(s) {
 
 /**
  * Execute the actual `<script>` generated inside `老板全景驾驶舱.html` inside `node:vm`
- * against parsed DOM nodes, clicking every tab and every copy button (both Clipboard API
- * and offline `file://` execCommand fallback) to verify zero JS runtime bugs.
+ * against parsed DOM nodes, clicking all 5 tabs, category filters, and every copy button
+ * (including live `#boss-topic-input` dynamic topic injection in offline `file://` mode).
  */
-function verifyDashboardHtmlInteractivity(htmlPath) {
+export function verifyDashboardHtmlInteractivity(htmlPath) {
   const html = fs.readFileSync(htmlPath, 'utf8');
   const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
   assert.ok(scriptMatch, `Expected inline <script> in ${htmlPath}`);
 
-  // Build lightweight DOM element models for panels, tab buttons, copy buttons, and toast
+  // Build lightweight DOM element models for all 5 panels
+  const tabIds = ['risks', 'prompts', 'lineage', 'timemachine', 'sos'];
   const panels = new Map();
-  for (const id of ['panel-risks', 'panel-lineage', 'panel-timemachine', 'panel-sos']) {
+  for (const t of tabIds) {
+    const id = `panel-${t}`;
     assert.ok(html.includes(`id="${id}"`), `Missing #${id} in ${htmlPath}`);
     const initiallyActive = new RegExp(`id="${id}"\\s+class="panel active"`).test(html);
     const classes = new Set(initiallyActive ? ['panel', 'active'] : ['panel']);
@@ -41,7 +43,7 @@ function verifyDashboardHtmlInteractivity(htmlPath) {
     });
   }
 
-  const tabBtns = ['risks', 'lineage', 'timemachine', 'sos'].map((tabId, idx) => {
+  const tabBtns = tabIds.map((tabId, idx) => {
     const classes = new Set(idx === 0 ? ['tab-btn', 'active'] : ['tab-btn']);
     return {
       tabId,
@@ -53,32 +55,68 @@ function verifyDashboardHtmlInteractivity(htmlPath) {
     };
   });
 
-  const copyBtnMatches = [...html.matchAll(/<button class="copy-btn[^"]*" data-copy="([^"]+)">/g)];
-  assert.ok(copyBtnMatches.length >= 2, `Expected copy buttons in ${htmlPath}`);
+  // Parse prompt cards and category filter pills
+  const promptCardMatches = [...html.matchAll(/<div class="finding-card prompt-card" data-pcat="([^"]+)">/g)];
+  assert.equal(promptCardMatches.length, 8, `Expected 8 Master Prompt cards in ${htmlPath}`);
+  const promptCards = promptCardMatches.map(m => ({
+    cat: m[1],
+    style: { display: 'block' },
+    getAttribute: name => (name === 'data-pcat' ? m[1] : null)
+  }));
+
+  const filterPills = ['all', 'khazix', 'engineering', 'design'].map((cat, idx) => {
+    const classes = new Set(idx === 0 ? ['filter-pill', 'active'] : ['filter-pill']);
+    return {
+      cat,
+      classList: {
+        add: c => classes.add(c),
+        remove: c => classes.delete(c),
+        contains: c => classes.has(c)
+      }
+    };
+  });
+
+  // Parse all copy buttons (supporting optional `data-template`)
+  const copyBtnRegex = /<button class="copy-btn[^"]*" data-copy="([^"]+)"(?:\s+data-template="([^"]+)")?>/g;
+  const copyBtnMatches = [...html.matchAll(copyBtnRegex)];
+  assert.ok(copyBtnMatches.length >= 9, `Expected findings + 8 master prompt copy buttons in ${htmlPath}`);
 
   const copyBtns = copyBtnMatches.map(m => {
-    const decoded = decodeHtmlAttr(m[1]);
+    const decodedCopy = decodeHtmlAttr(m[1]);
+    const decodedTpl = m[2] ? decodeHtmlAttr(m[2]) : null;
     const listeners = new Map();
     return {
-      getAttribute: name => (name === 'data-copy' ? decoded : null),
+      isMaster: Boolean(decodedTpl),
+      getAttribute: name => {
+        if (name === 'data-copy') return decodedCopy;
+        if (name === 'data-template') return decodedTpl;
+        return null;
+      },
       addEventListener: (ev, fn) => listeners.set(ev, fn),
       click: () => listeners.get('click')?.()
     };
   });
 
   const toastEl = { style: { display: 'none' } };
+  const topicInputEl = { value: '' };
   const copiedTexts = [];
   const appendedNodes = [];
 
   const sandbox = {
     navigator: {}, // Simulate `file://` double-click where `navigator.clipboard` is undefined!
-    setTimeout: fn => {}, // Do not auto-hide toast immediately during assertion
+    setTimeout: () => {},
     document: {
-      getElementById: id => (id === 'toast' ? toastEl : panels.get(id)),
+      getElementById: id => {
+        if (id === 'toast') return toastEl;
+        if (id === 'boss-topic-input') return topicInputEl;
+        return panels.get(id);
+      },
       querySelectorAll: sel => {
         if (sel === '.panel') return [...panels.values()];
         if (sel === '.tab-btn') return tabBtns;
         if (sel === '.copy-btn') return copyBtns;
+        if (sel === '.prompt-card') return promptCards;
+        if (sel === '.filter-pill') return filterPills;
         return [];
       },
       createElement: tag => ({
@@ -108,7 +146,7 @@ function verifyDashboardHtmlInteractivity(htmlPath) {
   vm.createContext(sandbox);
   vm.runInContext(scriptMatch[1], sandbox);
 
-  // 1. Click through all 4 tabs and verify exclusive active panel toggling
+  // 1. Click through all 5 tabs and verify exclusive active panel toggling
   for (const btn of tabBtns) {
     sandbox.switchTab(btn.tabId, btn);
     assert.equal(panels.get(`panel-${btn.tabId}`).classList.contains('active'), true);
@@ -120,7 +158,17 @@ function verifyDashboardHtmlInteractivity(htmlPath) {
     }
   }
 
-  // 2. Click every copy button in offline `file://` mode and verify exact Chinese prompt copied & toast shown
+  // 2. Click category filters in `#panel-prompts` and verify card filtering
+  sandbox.filterPrompts('khazix', filterPills[1]);
+  assert.equal(promptCards.filter(c => c.style.display === 'block').length, 4);
+  sandbox.filterPrompts('engineering', filterPills[2]);
+  assert.equal(promptCards.filter(c => c.style.display === 'block').length, 2);
+  sandbox.filterPrompts('design', filterPills[3]);
+  assert.equal(promptCards.filter(c => c.style.display === 'block').length, 2);
+  sandbox.filterPrompts('all', filterPills[0]);
+  assert.equal(promptCards.filter(c => c.style.display === 'block').length, 8);
+
+  // 3. Click every copy button with default empty input first
   for (const btn of copyBtns) {
     toastEl.style.display = 'none';
     btn.click();
@@ -128,9 +176,23 @@ function verifyDashboardHtmlInteractivity(htmlPath) {
   }
   assert.equal(copiedTexts.length, copyBtns.length);
   assert.equal(appendedNodes.length, 0, 'Temporary textarea must be cleaned up from document.body');
+
+  // 4. Type a custom founder idea into `#boss-topic-input` and verify dynamic injection into all 8 Master Prompts!
+  topicInputEl.value = '新增VIP客户储值卡与积分流水账本';
+  const masterBtns = copyBtns.filter(b => b.isMaster);
+  assert.equal(masterBtns.length, 8);
+  for (const mBtn of masterBtns) {
+    mBtn.click();
+    const latestCopied = copiedTexts[copiedTexts.length - 1];
+    assert.ok(
+      latestCopied.includes('新增VIP客户储值卡与积分流水账本'),
+      'Master prompt copy button must inject live #boss-topic-input text'
+    );
+    assert.ok(!latestCopied.includes('__BOSS_TOPIC__'), 'Template token must be cleanly replaced');
+  }
 }
 
-test('Interactive DOM & Offline file:// Copy Execution of 老板全景驾驶舱.html', () => {
+test('Interactive DOM, 5-Tab Switching & Live Master Prompt Injection in 老板全景驾驶舱.html', () => {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-dom-test-'));
   try {
     fs.mkdirSync(path.join(tmpRoot, 'src'), { recursive: true });
