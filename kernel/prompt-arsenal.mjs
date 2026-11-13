@@ -39,7 +39,9 @@ export function buildMasterPromptArsenal(workspace, audit, customTopic = '') {
   if (fs.existsSync(path.join(workspace.rootDir, 'apps/web/package.json'))) {
     extraBuildHints.push('npm --prefix apps/web run build');
   }
-  const mergedBuildList = [...new Set([...buildCmds, ...extraBuildHints])];
+  const mergedBuildList = [
+    ...new Set([...buildCmds, ...extraBuildHints].map(cmd => cmd.replace(/"/g, '').trim()))
+  ];
   const buildGuardLine =
     mergedBuildList.length > 0
       ? `前端静态构建护栏：若改动了前端源码，结束前必须自动执行 \`${mergedBuildList.join(' && ')}\` 刷新静态包，确保刷新浏览器立即可见。`
