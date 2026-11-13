@@ -19,7 +19,7 @@
 </div>
 
 <p align="center">
-  <img src="./docs/architecture.svg" width="100%" alt="GhostCTO Architecture" />
+  <img src="./docs/live-cockpit-demo.svg" width="100%" alt="GhostCTO 15秒老板驾驶舱真机动态演示：40分抓假代码 -> 卡兹克与Karpathy家底自动注入 -> 97分商用全绿" />
 </p>
 
 ---
@@ -88,16 +88,21 @@
 
 ## 🏗️ 为什么它能拿 10,000+ Star？（七大硬核确定性内核，绝非水提示词）
 
+<p align="center">
+  <img src="./docs/architecture.svg" width="100%" alt="GhostCTO 零依赖确定性内核架构图" />
+</p>
+
 ```mermaid
 flowchart TD
-    User["零代码创始人（只说大白话中文）"] --> Router["387-Token 静态自动路由器 (AGENTS.md) — 90% 缓存折扣 · 问号只读锁"]
+    User["零代码创始人（只说大白话中文）"] --> Router["410-Token 静态自动路由器 (AGENTS.md) — 90% 缓存折扣 · 问号只读锁"]
     Router --> MCP["零依赖离线 Stdio MCP 服务与 CLI (ghost-cto)"]
     MCP --> Lexer["1. 有限状态词法剥离器 (lexer.mjs) — O(N) 剥离注释与字符串干扰"]
     MCP --> Lineage["2. 3D 全栈穿透血缘图 (lineage-graph.mjs) — 前端 ↔ API ↔ 跨包函数 ↔ 数据库/AI"]
     MCP --> Audit["3. 10维假功能与上线法医引擎 (reality-audit.mjs) — 抓假落库 · 空吞错 · 裸奔后台"]
     MCP --> Blast["4. 爆炸半径锁定器 (blast-radius.mjs) — 按中文按钮名反查依赖与改动上限"]
     MCP --> Time["5. 代码+SQLite双轨时光机 (time-capsule.mjs) — 含 WAL 快照与 SHA-256 校验"]
-    MCP --> Cockpit["6. 老板全中文驾驶舱与自愈启动器 (boss-dashboard.mjs)"]
+    MCP --> Prompts["6. 卡兹克 & Karpathy 动态注入弹药库 (prompt-arsenal.mjs) — 自动带入真实表与端口"]
+    MCP --> Cockpit["7. 实时+离线双模老板驾驶舱与防泄密门禁 (boss-dashboard.mjs / live-server.mjs)"]
 ```
 
 ---

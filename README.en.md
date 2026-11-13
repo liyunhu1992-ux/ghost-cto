@@ -18,6 +18,10 @@
 
 </div>
 
+<p align="center">
+  <img src="./docs/live-cockpit-demo.svg" width="100%" alt="GhostCTO 15s Live Cockpit Demo" />
+</p>
+
 ---
 
 ## Why GhostCTO?
@@ -31,6 +35,10 @@ Non-technical founders building real commercial SaaS products hit completely dif
 4. **Cross-IDE Amnesia**: Switching between Cursor, Antigravity, Claude Code, Tencent WorkBuddy, or ByteDance Trae wipes project context.
 
 ## Core Architecture (Zero Runtime Dependencies, Node >= 18)
+
+<p align="center">
+  <img src="./docs/architecture.svg" width="100%" alt="GhostCTO Architecture" />
+</p>
 
 1. **`kernel/lexer.mjs` & `kernel/scanner.mjs`**: Single-pass `O(N)` polyglot finite-state lexer for JS/JSX/TS/TSX, Vue 3 `.vue`, Svelte `.svelte`, HTML `<script>`, `String.raw` embedded scripts, and Python — preserving exact 1-based line offsets.
 2. **`kernel/lineage-graph.mjs`**: 3D Full-Stack Reconciler tracing `Frontend fetch / axios / wx.request / uni.request` -> `Node HTTP / Express / Next.js App & Pages Router / Python FastAPI & Flask` -> `Multi-hop Monorepo & @/ Path Alias Functions` -> `SQLite / Supabase / Prisma / Drizzle / Mongoose / SQLAlchemy Tables & Outbound LLM Calls`.

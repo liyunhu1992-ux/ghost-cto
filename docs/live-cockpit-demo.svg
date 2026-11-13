@@ -1,0 +1,224 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 540" width="980" height="540" role="img" aria-label="GhostCTO 15-Second Live Demo">
+  <defs>
+    <linearGradient id="winBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FAF9F6"/>
+      <stop offset="100%" stop-color="#F3F2EE"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#18181B" flood-opacity="0.08"/>
+    </filter>
+    <style>
+      .font { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+      /* 15s Infinite 3-Scene Loop */
+      .scene1 { animation: fadeScene1 15s infinite; }
+      .scene2 { animation: fadeScene2 15s infinite; opacity: 0; }
+      .scene3 { animation: fadeScene3 15s infinite; opacity: 0; }
+
+      .step-pill-1 { animation: pillActive1 15s infinite; }
+      .step-pill-2 { animation: pillActive2 15s infinite; }
+      .step-pill-3 { animation: pillActive3 15s infinite; }
+
+      .toast-anim { animation: toastPop 15s infinite; opacity: 0; }
+      .progress-bar { animation: progMove 15s linear infinite; }
+
+      @keyframes fadeScene1 {
+        0%, 30% { opacity: 1; }
+        33%, 97% { opacity: 0; }
+        100% { opacity: 1; }
+      }
+      @keyframes fadeScene2 {
+        0%, 31% { opacity: 0; }
+        34%, 64% { opacity: 1; }
+        67%, 100% { opacity: 0; }
+      }
+      @keyframes fadeScene3 {
+        0%, 65% { opacity: 0; }
+        68%, 97% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+
+      @keyframes pillActive1 {
+        0%, 31% { fill: #18181B; }
+        33%, 98% { fill: #71717A; }
+        100% { fill: #18181B; }
+      }
+      @keyframes pillActive2 {
+        0%, 32% { fill: #71717A; }
+        34%, 65% { fill: #2563EB; }
+        67%, 100% { fill: #71717A; }
+      }
+      @keyframes pillActive3 {
+        0%, 66% { fill: #71717A; }
+        68%, 98% { fill: #059669; }
+        100% { fill: #71717A; }
+      }
+
+      @keyframes toastPop {
+        0%, 18% { opacity: 0; transform: translateY(8px); }
+        21%, 30% { opacity: 1; transform: translateY(0px); }
+        32%, 50% { opacity: 0; transform: translateY(8px); }
+        53%, 63% { opacity: 1; transform: translateY(0px); }
+        66%, 100% { opacity: 0; transform: translateY(8px); }
+      }
+
+      @keyframes progMove {
+        0% { width: 0px; }
+        100% { width: 920px; }
+      }
+    </style>
+  </defs>
+
+  <!-- Outer Browser Frame -->
+  <rect x="20" y="16" width="940" height="508" rx="16" fill="url(#winBg)" stroke="#D4D4D8" stroke-width="1.5" filter="url(#cardShadow)"/>
+
+  <!-- macOS Window Top Chrome -->
+  <rect x="20" y="16" width="940" height="44" rx="16" fill="#FFFFFF"/>
+  <rect x="20" y="44" width="940" height="16" fill="#FFFFFF"/>
+  <line x1="20" y1="60" x2="960" y2="60" stroke="#E4E4E7" stroke-width="1"/>
+  <circle cx="44" cy="38" r="6" fill="#EF4444"/>
+  <circle cx="64" cy="38" r="6" fill="#F59E0B"/>
+  <circle cx="84" cy="38" r="6" fill="#10B981"/>
+
+  <!-- Address Bar -->
+  <rect x="220" y="25" width="540" height="26" rx="7" fill="#F4F4F5" stroke="#E4E4E7"/>
+  <text x="490" y="42" text-anchor="middle" class="mono" font-size="12" fill="#52525B">🟢 http://127.0.0.1:9777 · 老板全景驾驶舱 (0-Token 实时引擎直连)</text>
+
+  <!-- Timeline Progress Bar -->
+  <rect x="30" y="61" width="920" height="3" rx="1.5" fill="#E4E4E7"/>
+  <rect x="30" y="61" width="0" height="3" rx="1.5" fill="#2563EB" class="progress-bar">
+    <animate attributeName="width" from="0" to="920" dur="15s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Scene Step Indicator Pills -->
+  <g transform="translate(50, 76)">
+    <rect x="0" y="0" width="275" height="26" rx="13" class="step-pill-1"/>
+    <text x="137" y="17" text-anchor="middle" class="font" font-size="12" font-weight="700" fill="#FFFFFF">① 0-Token 抓出 AI 假保存与裸奔后台</text>
+
+    <rect x="295" y="0" width="290" height="26" rx="13" class="step-pill-2"/>
+    <text x="440" y="17" text-anchor="middle" class="font" font-size="12" font-weight="700" fill="#FFFFFF">② 卡兹克&amp;Karpathy 指令自动注入家底</text>
+
+    <rect x="605" y="0" width="275" height="26" rx="13" class="step-pill-3"/>
+    <text x="742" y="17" text-anchor="middle" class="font" font-size="12" font-weight="700" fill="#FFFFFF">③ 一键排雷跃升 97 分 🟢 随时秒回退</text>
+  </g>
+
+  <!-- ==================== SCENE 1: 40/100 CATCHING FAKE AI CODE ==================== -->
+  <g class="scene1">
+    <!-- Hero Card -->
+    <rect x="50" y="116" width="880" height="106" rx="14" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <text x="74" y="152" class="font" font-size="20" font-weight="800" fill="#18181B">🛡️ mengine-cloud (媒擎 OS) · 影子 CTO 老板全景驾驶舱</text>
+    <text x="74" y="178" class="font" font-size="13.5" fill="#64646E">不看一行英文代码，80 毫秒看清你的产品哪些真通、哪些是 AI 糊弄你的假按钮。</text>
+    <rect x="74" y="189" width="330" height="24" rx="6" fill="#FEF2F2"/>
+    <text x="84" y="205" class="font" font-size="12" font-weight="700" fill="#DC2626">🚦 上线结论：🔴 存在 2 项致命阻断项，严禁直接发给客户！</text>
+
+    <!-- Red Score Box -->
+    <rect x="730" y="128" width="182" height="82" rx="12" fill="#FEF2F2" stroke="#FCA5A5"/>
+    <text x="821" y="172" text-anchor="middle" class="font" font-size="36" font-weight="800" fill="#DC2626">40</text>
+    <text x="821" y="194" text-anchor="middle" class="font" font-size="12" font-weight="600" fill="#991B1B">商用健康总分（初检报警）</text>
+
+    <!-- Finding Card 1 -->
+    <rect x="50" y="236" width="880" height="114" rx="12" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <rect x="50" y="236" width="6" height="114" rx="3" fill="#DC2626"/>
+    <rect x="72" y="250" width="168" height="22" rx="5" fill="#FEF2F2"/>
+    <text x="80" y="265" class="font" font-size="11.5" font-weight="700" fill="#DC2626">🔴 P0 致命阻断 · 样板房空壳</text>
+    <text x="252" y="265" class="mono" font-size="12" fill="#71717A">src/views-render.mjs:142</text>
+    <rect x="692" y="247" width="218" height="30" rx="7" fill="#18181B"/>
+    <text x="801" y="266" text-anchor="middle" class="font" font-size="12" font-weight="700" fill="#FFFFFF">📋 一键复制修复话术（发给 AI）</text>
+    <text x="72" y="294" class="font" font-size="15.5" font-weight="700" fill="#18181B">1. 假保存/假开关：函数 toggleShelf 弹出「已上架成功」，但根本没连后端数据库！</text>
+    <text x="72" y="318" class="font" font-size="13" fill="#3F3F46">对生意的影响：你在页面点击时它弹提示糊弄你，实际只改了浏览器临时变量——按 F5 刷新瞬间全部作废！</text>
+    <text x="72" y="338" class="mono" font-size="11.5" fill="#2563EB">⚡ 消耗 0 个大模型 Token · 本地有限状态词法器 42ms 精准抓获</text>
+
+    <!-- Finding Card 2 -->
+    <rect x="50" y="362" width="880" height="106" rx="12" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <rect x="50" y="362" width="6" height="106" rx="3" fill="#DC2626"/>
+    <rect x="72" y="376" width="168" height="22" rx="5" fill="#FEF2F2"/>
+    <text x="80" y="391" class="font" font-size="11.5" font-weight="700" fill="#DC2626">🔴 P0 致命阻断 · 裸奔管理端</text>
+    <text x="252" y="391" class="mono" font-size="12" fill="#71717A">apps/api/src/server.mjs:88</text>
+    <text x="72" y="420" class="font" font-size="15.5" font-weight="700" fill="#18181B">2. 总后台管理接口 /api/admin/* 未设管理员口令校验（共 6 个接口裸奔）</text>
+    <text x="72" y="444" class="font" font-size="13" fill="#3F3F46">对生意的影响：上线后任何知道网址的外人都能直接偷看你的大模型密钥、乱改门店余额和客户套餐！</text>
+  </g>
+
+  <!-- ==================== SCENE 2: KHAZIX & KARPATHY CONTEXT-INJECTED PROMPTS ==================== -->
+  <g class="scene2">
+    <rect x="50" y="116" width="880" height="104" rx="14" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <text x="74" y="146" class="font" font-size="16.5" font-weight="800" fill="#18181B">✨ 卡兹克 (KKKKhazix) &amp; Karpathy 封神提示词库（0 平时 Token · 自动注入本项目真实家底）</text>
+    <rect x="74" y="158" width="832" height="44" rx="9" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+    <text x="90" y="185" class="font" font-size="14" font-weight="700" fill="#1E3A8A">✍️ 老板输入大白话：「给门店增加充值满 1000 送 200 的储值卡活动」</text>
+
+    <!-- Injected Prompt Card -->
+    <rect x="50" y="234" width="880" height="238" rx="14" fill="#FFFFFF" stroke="#18181B" stroke-width="1.5"/>
+    <rect x="74" y="250" width="210" height="24" rx="6" fill="#F4F4F5"/>
+    <text x="84" y="266" class="font" font-size="12" font-weight="700" fill="#18181B">🔥 卡兹克强推 · 苏格拉底单问立项令</text>
+    <rect x="656" y="246" width="250" height="32" rx="8" fill="#2563EB"/>
+    <text x="781" y="266" text-anchor="middle" class="font" font-size="12.5" font-weight="700" fill="#FFFFFF">📋 一键复制（已自动带入 5 张真表）</text>
+
+    <rect x="74" y="286" width="832" height="168" rx="10" fill="#18181B"/>
+    <text x="92" y="312" class="mono" font-size="12.5" fill="#A7F3D0">【当前项目真实家底（GhostCTO 0-Token 自动扫描注入，严禁 AI 瞎编违背）】</text>
+    <text x="92" y="335" class="mono" font-size="12" fill="#F4F4F5">- 业务需求：「给门店增加充值满 1000 送 200 的储值卡活动」</text>
+    <text x="92" y="357" class="mono" font-size="12" fill="#93C5FD">- 现有真实数据表(5张)：store_wallet, weapon_shelf, tenants, rbac_roles, execution_logs</text>
+    <text x="92" y="379" class="mono" font-size="12" fill="#FDE68A">- 静态打包护栏：改动前端后必须自动执行 `node build-ui.mjs`，确保刷新浏览器立即可见</text>
+    <text x="92" y="403" class="mono" font-size="12" fill="#E4E4E7">1. 先管住手：在我说“确认开工”前禁止改任何文件；禁止问我任何技术术语（ORM/端口由你拍板）。</text>
+    <text x="92" y="425" class="mono" font-size="12" fill="#E4E4E7">2. 每次只问我 1 个最关键的生意选择题（最多 4 问），明确【第一版坚决先不做什么】防改崩老功能！</text>
+    <text x="92" y="445" class="mono" font-size="11.5" fill="#A1A1AA">✅ 直接粘贴进：腾讯 WorkBuddy / 豆包 / 字节 Trae / Antigravity / Cursor / Claude Code</text>
+  </g>
+
+  <!-- ==================== SCENE 3: 97/100 COMMERCIAL GREEN + LIVE 0-TOKEN STUDIO ==================== -->
+  <g class="scene3">
+    <!-- Hero Card Green -->
+    <rect x="50" y="116" width="880" height="114" rx="14" fill="#FFFFFF" stroke="#A7F3D0" stroke-width="1.5"/>
+    <text x="74" y="150" class="font" font-size="20" font-weight="800" fill="#18181B">🛡️ mengine-cloud (媒擎 OS) · 商用上线安检全绿通过！</text>
+    <text x="74" y="176" class="font" font-size="13.5" fill="#065F46" font-weight="600">🚦 上线结论：🟢 核心链路全部真通落库，后台口令加密就绪，可放心发给付费客户使用！</text>
+
+    <!-- Live Action Pills -->
+    <rect x="74" y="190" width="195" height="28" rx="7" fill="#059669"/>
+    <text x="171" y="208" text-anchor="middle" class="font" font-size="12" font-weight="700" fill="#FFFFFF">🔄 0-Token 立即重新体检 (60ms)</text>
+    <rect x="280" y="190" width="215" height="28" rx="7" fill="#18181B"/>
+    <text x="387" y="208" text-anchor="middle" class="font" font-size="12" font-weight="700" fill="#FFFFFF">📦 一键备份代码 + SQLite 数据库</text>
+    <rect x="506" y="190" width="185" height="28" rx="7" fill="#EFF6FF" stroke="#BFDBFE"/>
+    <text x="598" y="208" text-anchor="middle" class="font" font-size="12" font-weight="700" fill="#1D4ED8">🏅 一键复制体检战报晒图</text>
+
+    <!-- Green Score Box with +57 Delta -->
+    <rect x="716" y="126" width="198" height="94" rx="12" fill="#ECFDF5" stroke="#6EE7B7"/>
+    <text x="815" y="168" text-anchor="middle" class="font" font-size="38" font-weight="800" fill="#059669">97</text>
+    <text x="815" y="187" text-anchor="middle" class="font" font-size="11.5" font-weight="600" fill="#065F46">商用健康总分（满分 100）</text>
+    <rect x="733" y="194" width="164" height="20" rx="10" fill="#059669"/>
+    <text x="815" y="208" text-anchor="middle" class="font" font-size="11" font-weight="700" fill="#FFFFFF">📈 较初检跃升 +57 分！</text>
+
+    <!-- 4 KPI Cards -->
+    <rect x="50" y="244" width="208" height="78" rx="12" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <text x="70" y="280" class="font" font-size="24" font-weight="800" fill="#059669">10 条 🟢</text>
+    <text x="70" y="304" class="font" font-size="12.5" fill="#64646E">真通落库 / 真实可用功能线</text>
+
+    <rect x="274" y="244" width="208" height="78" rx="12" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <text x="294" y="280" class="font" font-size="24" font-weight="800" fill="#059669">0 条</text>
+    <text x="294" y="304" class="font" font-size="12.5" fill="#64646E">内存假落库 / 404 断头接口</text>
+
+    <rect x="498" y="244" width="208" height="78" rx="12" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <text x="518" y="280" class="font" font-size="24" font-weight="800" fill="#18181B">5 张真表</text>
+    <text x="518" y="304" class="font" font-size="12.5" fill="#64646E">SQLite 持久化 + WAL 快照备份</text>
+
+    <rect x="722" y="244" width="208" height="78" rx="12" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <text x="742" y="280" class="font" font-size="24" font-weight="800" fill="#2563EB">8 大软件</text>
+    <text x="742" y="304" class="font" font-size="12.5" fill="#64646E">WorkBuddy / 豆包 / Trae / Cursor</text>
+
+    <!-- Lineage Green Rows -->
+    <rect x="50" y="336" width="880" height="136" rx="12" fill="#FFFFFF" stroke="#E4E4E7"/>
+    <text x="72" y="364" class="font" font-size="13.5" font-weight="700" fill="#18181B">🔬 3D 全栈真假穿透表（前端按钮 → 后端路由 → 真实数据库表）</text>
+    <line x1="50" y1="376" x2="930" y2="376" stroke="#E4E4E7"/>
+    <text x="72" y="401" class="font" font-size="12.5" fill="#059669" font-weight="700">🟢 真通落库（永久保存）</text>
+    <text x="245" y="401" class="mono" font-size="12" fill="#18181B">POST /api/os/shelf/toggle</text>
+    <text x="465" y="401" class="font" font-size="12.5" fill="#3F3F46">写库 [weapon_shelf] · 按 F5 或重启服务永久保留</text>
+    <line x1="72" y1="414" x2="910" y2="414" stroke="#F4F4F5"/>
+    <text x="72" y="438" class="font" font-size="12.5" fill="#059669" font-weight="700">🟢 真通落库 + 加密鉴权</text>
+    <text x="245" y="438" class="mono" font-size="12" fill="#18181B">POST /api/os/tenant/create</text>
+    <text x="465" y="438" class="font" font-size="12.5" fill="#3F3F46">写库 [tenants, store_wallet] · 时光机存档 CP-ee3c 已保护</text>
+    <text x="72" y="461" class="mono" font-size="11.5" fill="#059669">🛡️ Git 提交防泄密钩子已开启：自动拦截 .env 与阿里云 LTAI / 腾讯云 AKID / OpenAI sk- 密钥外泄</text>
+  </g>
+
+  <!-- Toast Popup -->
+  <g class="toast-anim">
+    <rect x="540" y="476" width="390" height="36" rx="9" fill="#18181B"/>
+    <text x="735" y="499" text-anchor="middle" class="font" font-size="12.5" font-weight="700" fill="#FFFFFF">✅ 已复制指令！直接去 WorkBuddy / 豆包 / Cursor 粘贴即可</text>
+  </g>
+</svg>
