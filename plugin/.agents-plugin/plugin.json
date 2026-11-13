@@ -1,0 +1,14 @@
+{
+  "name": "ghost-cto",
+  "version": "1.0.0",
+  "description": "影子 CTO (GhostCTO) — 专为零代码创始人打造的 0-Token 真假功能穿透、防改崩锁定、代码+数据库双轨时光机与全中文驾驶舱引擎",
+  "author": {
+    "name": "GhostCTO Open Source Community"
+  },
+  "logo": "./assets/logo.svg",
+  "rules": [
+    "./rules/AGENTS.md"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}
