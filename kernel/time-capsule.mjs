@@ -119,13 +119,13 @@ export function saveCheckpoint(rootDir, label = '手动安全存档', options = 
   runGit(absRoot, ['add', '-A']);
   let statusOut = runGit(absRoot, ['status', '--porcelain']);
   if (statusOut.length > 0) {
-    runGit(absRoot, ['commit', '-m', `[GhostCTO ${id}] ${label}`]);
+    runGit(absRoot, ['commit', '--no-verify', '-m', `[GhostCTO ${id}] ${label}`]);
   } else {
     // Ensure at least one initial commit exists
     try {
       runGit(absRoot, ['rev-parse', 'HEAD']);
     } catch {
-      runGit(absRoot, ['commit', '--allow-empty', '-m', `[GhostCTO ${id}] ${label}`]);
+      runGit(absRoot, ['commit', '--no-verify', '--allow-empty', '-m', `[GhostCTO ${id}] ${label}`]);
     }
   }
   const gitCommit = runGit(absRoot, ['rev-parse', 'HEAD']);
@@ -209,7 +209,7 @@ export function rewindCheckpoint(rootDir, targetId = 'latest') {
   runGit(absRoot, ['add', '-A']);
   const postCheckoutStatus = runGit(absRoot, ['status', '--porcelain']);
   if (postCheckoutStatus.length > 0) {
-    runGit(absRoot, ['commit', '-m', `[GhostCTO Rewind -> ${manifest.id}] 恢复至「${manifest.label}」`]);
+    runGit(absRoot, ['commit', '--no-verify', '-m', `[GhostCTO Rewind -> ${manifest.id}] 恢复至「${manifest.label}」`]);
   }
 
   // Step 3: Atomically restore SQLite & WAL files with SHA-256 verification

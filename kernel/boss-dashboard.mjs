@@ -13,9 +13,34 @@ function escHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+function updateAndReadScoreHistory(rootDir, currentScore) {
+  const histPath = path.join(rootDir, '.vibe', 'score-history.json');
+  fs.mkdirSync(path.dirname(histPath), { recursive: true });
+  let hist = { firstScore: currentScore, previousScore: currentScore, currentScore };
+  if (fs.existsSync(histPath)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(histPath, 'utf8'));
+      if (typeof parsed.firstScore === 'number') {
+        hist.firstScore = parsed.firstScore;
+      }
+      if (typeof parsed.currentScore === 'number' && parsed.currentScore !== currentScore) {
+        hist.previousScore = parsed.currentScore;
+      } else if (typeof parsed.previousScore === 'number') {
+        hist.previousScore = parsed.previousScore;
+      }
+    } catch {
+      // ignore malformed history
+    }
+  }
+  hist.currentScore = currentScore;
+  hist.updatedAt = new Date().toISOString();
+  fs.writeFileSync(histPath, JSON.stringify(hist, null, 2), 'utf8');
+  return hist;
+}
+
 /**
- * Generate a standalone, offline-ready, zero-jargon Chinese visual HTML cockpit (`老板全景驾驶舱.html`)
- * so complete beginners can inspect their entire product without reading a single line of code.
+ * Generate a standalone, dual-mode (Offline `file://` + Live `http://127.0.0.1` 0-Token Interactive)
+ * zero-jargon Chinese visual HTML cockpit (`老板全景驾驶舱.html`).
  */
 export function generateBossDashboard(workspace, audit) {
   const runtime = detectRuntimeTopology(workspace);
@@ -23,6 +48,7 @@ export function generateBossDashboard(workspace, audit) {
   const chains = audit.lineage.chains;
   const masterPrompts = buildMasterPromptArsenal(workspace, audit, '');
   const masterTemplates = buildMasterPromptArsenal(workspace, audit, '__BOSS_TOPIC__');
+  const scoreHist = updateAndReadScoreHistory(workspace.rootDir, audit.score);
 
   const realCount = chains.filter(c => c.badge.startsWith('🟢')).length;
   const fakeOrWarnCount = chains.filter(c => c.badge.startsWith('🟡')).length;
@@ -33,12 +59,26 @@ export function generateBossDashboard(workspace, audit) {
   const scoreBg =
     audit.p0Count > 0 ? '#FEF2F2' : audit.score >= 85 ? '#ECFDF5' : '#FFFBEB';
 
+  const deltaFromFirst = audit.score - scoreHist.firstScore;
+  const scoreDeltaHtml =
+    deltaFromFirst > 0
+      ? `<div class="score-delta">📈 较初检跃升 +${deltaFromFirst} 分（初检 ${scoreHist.firstScore} 分）</div>`
+      : '';
+
+  const shareCertificateText = [
+    `🛡️ 【${runtime.projectName} · 影子 CTO (GhostCTO) 商用体检战报】`,
+    `📊 商用健康总分：${audit.score} / 100 分${deltaFromFirst > 0 ? `（较初检提升 +${deltaFromFirst} 分）` : ''}`,
+    `🚦 上线安检结论：${audit.launchVerdict}`,
+    `🔬 全栈真假穿透：🟢 真通落库 ${realCount} 条 ｜ 🗄️ 真实数据表 ${audit.lineage.schemaTables.length} 张 ｜ 🔴 404断头路 ${brokenCount} 条`,
+    `⚡ 由开源项目 GhostCTO（影子 CTO）0-Token 本地确定性引擎验真生成`
+  ].join('\n');
+
   const portLinksHtml =
     runtime.ports.length > 0
       ? runtime.ports
           .map(
             p =>
-              `<a class="port-pill" href="http://127.0.0.1:${p}" target="_blank" rel="noopener">🌐 打开本地端口 :${p}</a>`
+              `<a class="port-pill" href="http://127.0.0.1:${p}" target="_blank" rel="noopener">🌐 打开业务端口 :${p}</a>`
           )
           .join('')
       : `<span class="muted">自动端口（双击项目文件夹内的「双击启动项目」即可自动打开网页）</span>`;
@@ -119,7 +159,10 @@ export function generateBossDashboard(workspace, audit) {
               <strong>📦 ${escHtml(cp.label)}</strong>
               <div class="cp-meta">编号：<code>${escHtml(cp.id)}</code> ｜ 时间：${escHtml(cp.createdAt.replace('T', ' ').slice(0, 19))} ｜ 含数据库备份：${cp.dbCount} 个</div>
             </div>
-            <button class="copy-btn ghost-btn" data-copy="请用时光机把代码和数据库一起安全回退到存档点 ${escHtml(cp.id)}（${escHtml(cp.label)}），不要丢失任何备份">⏪ 复制回退指令</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button class="live-only-btn live-rewind-btn" style="display:none;" onclick="liveRewindCheckpoint('${escHtml(cp.id)}', '${escHtml(cp.label)}')">⚡ 立即秒退回此版本 (0 Token)</button>
+              <button class="copy-btn ghost-btn" data-copy="请用时光机把代码和数据库一起安全回退到存档点 ${escHtml(cp.id)}（${escHtml(cp.label)}），不要丢失任何备份">📋 复制回退话术</button>
+            </div>
           </div>`
           )
           .join('\n');
@@ -149,10 +192,25 @@ export function generateBossDashboard(workspace, audit) {
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
-      padding: 28px 20px 64px;
+      padding: 24px 20px 64px;
       -webkit-font-smoothing: antialiased;
     }
     .container { max-width: 1120px; margin: 0 auto; }
+    .mode-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 16px;
+      margin-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .mode-badge-offline { color: var(--muted); font-weight: 600; }
+    .mode-badge-live { color: var(--green); font-weight: 700; }
     .hero {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -181,10 +239,14 @@ export function generateBossDashboard(workspace, audit) {
       border-radius: 14px;
       padding: 16px 24px;
       text-align: center;
-      min-width: 210px;
+      min-width: 220px;
     }
     .score-num { font-size: 38px; font-weight: 800; color: ${scoreColor}; font-variant-numeric: tabular-nums; line-height: 1.1; }
     .score-label { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+    .score-delta {
+      margin-top: 6px; display: inline-block; background: #ECFDF5; color: #065F46;
+      border: 1px solid #A7F3D0; border-radius: 999px; padding: 2px 10px; font-size: 11.5px; font-weight: 700;
+    }
     .verdict-banner {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -269,12 +331,26 @@ export function generateBossDashboard(workspace, audit) {
       margin-top: 10px; white-space: pre-wrap; word-break: break-word; font-size: 12.5px;
       line-height: 1.55; color: #27272A; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", monospace;
     }
-    .copy-btn {
+    .copy-btn, .live-action-btn, .live-only-btn {
       background: var(--primary); color: #FFF; border: none; border-radius: 8px;
       padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer;
     }
-    .copy-btn:hover { opacity: 0.9; }
+    .live-action-btn { background: var(--green); }
+    .live-rewind-btn { background: #DC2626; }
+    .copy-btn:hover, .live-action-btn:hover, .live-only-btn:hover { opacity: 0.9; }
     .ghost-btn { background: #F4F4F5; color: var(--text); border: 1px solid var(--border); }
+    .live-box {
+      background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 14px;
+      padding: 16px 18px; margin-bottom: 16px; display: none;
+    }
+    .live-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+    .live-row input {
+      flex: 1; min-width: 240px; padding: 9px 12px; border-radius: 8px; border: 1px solid #A7F3D0; font-size: 13.5px;
+    }
+    .impact-result {
+      margin-top: 12px; background: #FFF; border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px; font-size: 13px; white-space: pre-wrap; display: none;
+    }
     .table-wrap {
       background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow-x: auto;
     }
@@ -304,6 +380,14 @@ export function generateBossDashboard(workspace, audit) {
 </head>
 <body>
   <div class="container">
+    <div class="mode-bar">
+      <span id="live-status-text" class="mode-badge-offline">📄 当前为离线快照模式（双击项目内的「打开实时驾驶舱」即可开启 0-Token 网页一键重测 / 秒备份 / 秒回退）</span>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="btn-live-audit" class="live-action-btn" style="display:none;" onclick="liveRunAudit()">🔄 0-Token 立即重新体检刷新分数</button>
+        <button class="copy-btn ghost-btn" data-copy="${escHtml(shareCertificateText)}">🏅 复制项目体检战报（发团队/晒进展）</button>
+      </div>
+    </div>
+
     <div class="hero">
       <div class="hero-left">
         <h1>🛡️ ${escHtml(runtime.projectName)} · 影子 CTO 老板全景驾驶舱</h1>
@@ -313,6 +397,7 @@ export function generateBossDashboard(workspace, audit) {
       <div class="score-box">
         <div class="score-num">${audit.score}</div>
         <div class="score-label">商用健康总分（满分 100）</div>
+        ${scoreDeltaHtml}
       </div>
     </div>
 
@@ -368,6 +453,15 @@ export function generateBossDashboard(workspace, audit) {
     </div>
 
     <div id="panel-lineage" class="panel">
+      <div id="live-impact-box" class="live-box">
+        <strong>🔍 中文按钮 / 功能爆炸半径 0-Token 实时反查器</strong>
+        <p style="font-size:13px; color:#065F46; margin-top:2px;">输入界面上的任意中文按钮名或模块词（例如“导出订单”、“门店设置”），50 毫秒查出它连着哪个页面、哪个接口、哪张表：</p>
+        <div class="live-row">
+          <input id="live-impact-input" type="text" placeholder="输入界面中文按钮文字或接口词..." />
+          <button class="live-action-btn" onclick="liveQueryImpact()">🔍 立即反查影响范围</button>
+        </div>
+        <div id="live-impact-result" class="impact-result"></div>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -387,9 +481,16 @@ export function generateBossDashboard(workspace, audit) {
     </div>
 
     <div id="panel-timemachine" class="panel">
+      <div id="live-save-box" class="live-box">
+        <strong>⚡ 实时时光机控制台（0 Token 本地毫秒级双备份：Git 代码 + SQLite 数据库）</strong>
+        <div class="live-row">
+          <input id="live-save-label" type="text" placeholder="输入存档备注（例如：改首页配色前安全备份）..." />
+          <button class="live-action-btn" onclick="liveSaveCheckpoint()">📦 立即创建代码+数据库双备份</button>
+        </div>
+      </div>
       <div class="finding-card" style="margin-bottom: 18px;">
-        <h3 class="finding-title">🔄 国内外 8 大 AI 编程软件已无缝打通（随时换软件不失忆）</h3>
-        <p class="finding-desc">本项目已写入统一记忆胶囊（<code>.vibe/capsule.md</code>）与原生规则。哪怕某个软件额度用完了，直接用下面任意软件打开同一个文件夹就能无缝接着做：</p>
+        <h3 class="finding-title">🔄 国内外 8 大 AI 编程软件已无缝打通（含 Git 提交防泄密门禁）</h3>
+        <p class="finding-desc">本项目已写入统一记忆胶囊（<code>.vibe/capsule.md</code>）、原生规则与 Git 密钥防泄露钩子。哪怕某个软件额度用完了，直接用下面任意软件打开同一个文件夹就能无缝接着做：</p>
         <div class="ide-badges">
           <span class="ide-pill">✅ 腾讯 WorkBuddy</span>
           <span class="ide-pill">✅ 腾讯 CodeBuddy</span>
@@ -430,6 +531,13 @@ export function generateBossDashboard(workspace, audit) {
   <div id="toast" class="toast">✅ 已复制指令！直接去 WorkBuddy / 豆包 / Antigravity 粘贴发送即可</div>
 
   <script>
+    function showToastMsg(msg) {
+      const t = document.getElementById('toast');
+      if (!t) return;
+      if (msg) t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 2600);
+    }
     function switchTab(id, btn) {
       document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -445,15 +553,11 @@ export function generateBossDashboard(workspace, audit) {
       });
     }
     function copySafe(text) {
-      function showOk() {
-        const t = document.getElementById('toast');
-        t.style.display = 'block';
-        setTimeout(() => { t.style.display = 'none'; }, 2600);
-      }
+      const okMsg = '✅ 已复制指令！直接去 WorkBuddy / 豆包 / Antigravity 粘贴发送即可';
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(showOk).catch(() => fallbackCopy(text, showOk));
+        navigator.clipboard.writeText(text).then(() => showToastMsg(okMsg)).catch(() => fallbackCopy(text, () => showToastMsg(okMsg)));
       } else {
-        fallbackCopy(text, showOk);
+        fallbackCopy(text, () => showToastMsg(okMsg));
       }
     }
     function fallbackCopy(text, cb) {
@@ -480,6 +584,86 @@ export function generateBossDashboard(workspace, audit) {
         copySafe(text);
       });
     });
+
+    // Auto-detect Live Interactive Daemon (ghost-cto studio / 打开实时驾驶舱)
+    if (typeof window !== 'undefined' && window.location && /^https?:$/i.test(window.location.protocol) && typeof fetch === 'function') {
+      fetch('/__ghost_api/ping')
+        .then(r => r.json())
+        .then(data => {
+          if (!data || !data.ok) return;
+          const st = document.getElementById('live-status-text');
+          if (st) {
+            st.className = 'mode-badge-live';
+            st.textContent = '🟢 实时引擎已直连（支持 0-Token 网页一键重测、秒存代码+数据库备份、一键秒回退）';
+          }
+          const btnAudit = document.getElementById('btn-live-audit');
+          if (btnAudit) btnAudit.style.display = 'inline-block';
+          const saveBox = document.getElementById('live-save-box');
+          if (saveBox) saveBox.style.display = 'block';
+          const impBox = document.getElementById('live-impact-box');
+          if (impBox) impBox.style.display = 'block';
+          document.querySelectorAll('.live-only-btn').forEach(b => { b.style.display = 'inline-block'; });
+        })
+        .catch(() => {});
+    }
+
+    function liveRunAudit() {
+      showToastMsg('⏳ 正在 0-Token 毫秒级重新扫描全栈代码...');
+      fetch('/__ghost_api/audit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+        .then(r => r.json())
+        .then(d => {
+          if (d.ok) window.location.reload();
+        });
+    }
+    function liveSaveCheckpoint() {
+      const inp = document.getElementById('live-save-label');
+      const label = inp && inp.value ? inp.value.trim() : '驾驶舱网页一键安全备份';
+      fetch('/__ghost_api/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label })
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.ok) {
+            showToastMsg('✅ 双备份存档成功：' + d.id);
+            setTimeout(() => window.location.reload(), 600);
+          }
+        });
+    }
+    function liveRewindCheckpoint(cpId, cpLabel) {
+      if (typeof confirm === 'function' && !confirm('确定要把代码和数据库一起退回到「' + cpLabel + '」吗？（系统会自动先保存一份当前状态的急救备份，绝不丢数据）')) {
+        return;
+      }
+      fetch('/__ghost_api/rewind', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checkpointId: cpId })
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.ok) {
+            showToastMsg('⏪ 已安全回退至 ' + d.restoredId);
+            setTimeout(() => window.location.reload(), 700);
+          }
+        });
+    }
+    function liveQueryImpact() {
+      const inp = document.getElementById('live-impact-input');
+      const out = document.getElementById('live-impact-result');
+      const q = inp && inp.value ? inp.value.trim() : '';
+      if (!q || !out) return;
+      fetch('/__ghost_api/impact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: q })
+      })
+        .then(r => r.json())
+        .then(d => {
+          out.style.display = 'block';
+          out.textContent = d.ok ? d.founderMarkdown : ('查询提示：' + d.error);
+        });
+    }
   </script>
 </body>
 </html>`;
@@ -494,8 +678,8 @@ export function generateBossDashboard(workspace, audit) {
 }
 
 /**
- * Generate self-healing double-click launcher scripts (`双击启动项目.command` & `双击启动项目.bat`)
- * so complete beginners never get stuck when reopening their computer the next day!
+ * Generate self-healing double-click launcher scripts (`双击启动项目` + `打开实时驾驶舱`)
+ * so complete beginners never get stuck when reopening their computer!
  */
 export function generateSelfHealingLaunchers(workspace) {
   const runtime = detectRuntimeTopology(workspace);
@@ -506,7 +690,7 @@ export function generateSelfHealingLaunchers(workspace) {
     .map(sb => sb.buildCmd || (sb.appDir === '.' ? 'npm run build' : `npm --prefix "${sb.appDir}" run build`))
     .join('\n');
 
-  // macOS double-clickable `.command`
+  // 1. App self-healing launcher (`双击启动项目.command` & `.bat`)
   const macScript = `#!/bin/bash
 cd "$(dirname "$0")"
 echo "===================================================="
@@ -514,7 +698,6 @@ echo "🛡️ 影子 CTO (GhostCTO) 自愈式一键启动器"
 echo "正在为您检查并唤醒项目：${runtime.projectName}"
 echo "===================================================="
 
-# 1. 自动清理上次卡死占用的本地端口
 for PORT in ${portsStr || primaryPort}; do
   PID=$(lsof -ti tcp:$PORT 2>/dev/null)
   if [ -n "$PID" ]; then
@@ -523,16 +706,13 @@ for PORT in ${portsStr || primaryPort}; do
   fi
 done
 
-# 2. 若缺依赖则自动安装
 if [ -f "package.json" ] && [ ! -d "node_modules" ]; then
   echo "📦 首次运行，正在自动安装依赖包..."
   npm install
 fi
 
-# 3. 若存在需要更新的前端静态包则自动检查构建
 ${staleBuildCmds ? `echo "🔨 正在同步最新界面打包文件..."\n${staleBuildCmds} || true` : '# 无需静态预打包'}
 
-# 4. 延迟 2 秒后自动打开浏览器与驾驶舱
 (sleep 2 && open "http://127.0.0.1:${primaryPort}") &
 
 echo "🚀 服务启动中！浏览器即将自动打开 http://127.0.0.1:${primaryPort}"
@@ -540,7 +720,6 @@ echo "（保持本窗口开启即可使用，关闭本窗口即停止服务）"
 ${runtime.startCmd}
 `;
 
-  // Windows double-clickable `.bat`
   const winScript = `@echo off
 chcp 65001 >nul
 cd /d "%~dp0"
@@ -562,15 +741,36 @@ call ${runtime.startCmd}
 pause
 `;
 
+  // 2. Live Interactive Cockpit launcher (`打开实时驾驶舱.command` & `.bat`)
+  const liveMacScript = `#!/bin/bash
+cd "$(dirname "$0")"
+echo "🛡️ 正在启动【${runtime.projectName}】0-Token 实时交互版老板全景驾驶舱..."
+node ".vibe/engine/bin/ghost-cto.mjs" studio --dir "$(pwd)"
+`;
+
+  const liveWinScript = `@echo off
+chcp 65001 >nul
+cd /d "%~dp0"
+echo [GhostCTO] 正在启动 0-Token 实时交互版老板全景驾驶舱...
+node ".vibe\\engine\\bin\\ghost-cto.mjs" studio --dir "%cd%"
+pause
+`;
+
   const macPath = path.join(workspace.rootDir, '双击启动项目.command');
   const winPath = path.join(workspace.rootDir, '双击启动项目.bat');
+  const liveMacPath = path.join(workspace.rootDir, '打开实时驾驶舱.command');
+  const liveWinPath = path.join(workspace.rootDir, '打开实时驾驶舱.bat');
+
   fs.writeFileSync(macPath, macScript, { encoding: 'utf8', mode: 0o755 });
+  fs.writeFileSync(liveMacPath, liveMacScript, { encoding: 'utf8', mode: 0o755 });
   try {
     fs.chmodSync(macPath, 0o755);
+    fs.chmodSync(liveMacPath, 0o755);
   } catch {
     // ignore chmod on unsupported fs
   }
   fs.writeFileSync(winPath, winScript, 'utf8');
+  fs.writeFileSync(liveWinPath, liveWinScript, 'utf8');
 
-  return { macPath, winPath, primaryPort, startCmd: runtime.startCmd };
+  return { macPath, winPath, liveMacPath, liveWinPath, primaryPort, startCmd: runtime.startCmd };
 }

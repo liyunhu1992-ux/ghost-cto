@@ -62,6 +62,13 @@ function upsertMcpJsonFile(filePath, serverEntry) {
  */
 export function installGhostCTO(targetRootDir, options = {}) {
   const absTarget = path.resolve(targetRootDir);
+  if (absTarget === GHOST_PACKAGE_ROOT && !options.allowSelf) {
+    throw new Error(
+      '温馨提示：当前目录是 GhostCTO（影子 CTO）工具本身的源码目录，不需要给它自己安装。\n' +
+        '👉 请传入您的业务项目文件夹路径：node bin/ghost-cto.mjs init "/你的项目文件夹路径"\n' +
+        '👉 或者直接双击文件夹里的「双击安装到我的项目.command」（苹果）或「双击安装到我的项目.bat」（Windows）弹窗选择项目！'
+    );
+  }
   fs.mkdirSync(absTarget, { recursive: true });
 
   const pluginSrc = path.join(GHOST_PACKAGE_ROOT, 'plugin');
@@ -185,6 +192,7 @@ export function installGhostCTO(targetRootDir, options = {}) {
   const capsuleInfo = writeMemoryCapsule(ws, audit);
   const dashboardInfo = generateBossDashboard(ws, audit);
   const launcherInfo = generateSelfHealingLaunchers(ws);
+  installGitPreCommitGuard(absTarget);
 
   return {
     rootDir: absTarget,
@@ -196,6 +204,7 @@ export function installGhostCTO(targetRootDir, options = {}) {
     capsuleTokens: capsuleInfo.tokens,
     dashboardPath: dashboardInfo.rootOutPath,
     macLauncherPath: launcherInfo.macPath,
+    liveCockpitMacPath: launcherInfo.liveMacPath,
     winLauncherPath: launcherInfo.winPath,
     initialCheckpointId: initialCheckpoint ? initialCheckpoint.id : listCheckpoints(absTarget)[0]?.id || null,
     platformsSynced: [
@@ -209,4 +218,40 @@ export function installGhostCTO(targetRootDir, options = {}) {
       'OpenAI Codex (AGENTS.md)'
     ]
   };
+}
+
+/**
+ * Non-destructively install a Git pre-commit secret-leak guard (`.git/hooks/pre-commit`)
+ * so beginners never accidentally push `.env` files or hardcoded API keys to GitHub.
+ */
+function installGitPreCommitGuard(absTarget) {
+  const hooksDir = path.join(absTarget, '.git', 'hooks');
+  if (!fs.existsSync(hooksDir)) return;
+
+  const hookPath = path.join(hooksDir, 'pre-commit');
+  const marker = '# GhostCTO Pre-Commit Secret Guard';
+  if (fs.existsSync(hookPath)) {
+    try {
+      const existing = fs.readFileSync(hookPath, 'utf8');
+      if (!existing.includes(marker)) {
+        // Respect existing user/Husky pre-commit hooks cleanly
+        return;
+      }
+    } catch {
+      return;
+    }
+  }
+
+  const script = `#!/bin/sh
+${marker}
+if [ -f ".vibe/engine/bin/ghost-cto.mjs" ]; then
+  node ".vibe/engine/bin/ghost-cto.mjs" precommit-check --dir "$(pwd)"
+fi
+`;
+  fs.writeFileSync(hookPath, script, { encoding: 'utf8', mode: 0o755 });
+  try {
+    fs.chmodSync(hookPath, 0o755);
+  } catch {
+    // ignore
+  }
 }

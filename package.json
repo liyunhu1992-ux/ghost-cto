@@ -1,7 +1,7 @@
 {
   "name": "ghost-cto",
-  "version": "1.2.0",
-  "description": "GhostCTO (影子 CTO) — Zero-Token Deterministic Product Reality Engine, 3D Full-Stack Lineage Mapper & Auto-Routing Harness for Non-Technical Vibe Coders",
+  "version": "2.0.0",
+  "description": "GhostCTO (影子 CTO) — Zero-Token Deterministic Product Reality Engine, Live Visual Cockpit, Atomic Code+DB Time Machine & Auto-Routing Harness for Non-Technical Vibe Coders",
   "type": "module",
   "bin": {
     "ghost-cto": "./bin/ghost-cto.mjs"
@@ -13,11 +13,14 @@
     "docs/",
     "install.sh",
     "install.ps1",
+    "双击安装到我的项目.command",
+    "双击安装到我的项目.bat",
     "README.md",
     "README.en.md",
     "INSTALL.md",
     "SECURITY.md",
     "CONTRIBUTING.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
@@ -36,7 +39,7 @@
     "antigravity",
     "claude-code",
     "cursor",
-    "context-engineering",
+    "khazix",
     "non-technical-founder",
     "static-analysis",
     "token-optimization"

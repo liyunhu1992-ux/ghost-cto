@@ -194,7 +194,7 @@ export function analyzeSource(rawSource, ext = '.js') {
   }
 
   let source = rawSource;
-  if (ext === '.html') {
+  if (ext === '.html' || ext === '.vue' || ext === '.svelte') {
     source = extractHtmlScriptsWithLinePreservation(rawSource);
   } else {
     source = unwrapEmbeddedStringRawScripts(rawSource);

@@ -1,0 +1,36 @@
+name: 🐛 问题反馈 (Bug Report)
+description: 遇到了安装失败、误报或驾驶舱使用问题？用大白话告诉我们即可！
+title: "[反馈] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 你正在使用哪款 AI 编程软件？
+      options:
+        - 腾讯 WorkBuddy
+        - 字节 豆包 / Trae
+        - 腾讯 CodeBuddy
+        - Google Antigravity
+        - Cursor
+        - Claude Code
+        - Windsurf / Codex / 其他
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: 你的电脑系统是？
+      options:
+        - macOS (苹果电脑)
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 遇到了什么情况？（不用写专业术语，直接贴截图或大白话描述即可）
+      placeholder: 例如：双击安装后打开驾驶舱，某个按钮提示了xxx...
+    validations:
+      required: true

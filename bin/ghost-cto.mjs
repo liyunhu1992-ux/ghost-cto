@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { scanWorkspace } from '../kernel/scanner.mjs';
 import { buildLineageGraph, formatLineageReport } from '../kernel/lineage-graph.mjs';
-import { runRealityAudit, formatAuditReport } from '../kernel/reality-audit.mjs';
+import { runRealityAudit, formatAuditReport, SECRET_PATTERNS } from '../kernel/reality-audit.mjs';
 import { computeBlastRadius } from '../kernel/blast-radius.mjs';
 import { saveCheckpoint, rewindCheckpoint, listCheckpoints } from '../kernel/time-capsule.mjs';
 import { writeMemoryCapsule, learnScar, detectRuntimeTopology } from '../kernel/memory-capsule.mjs';
@@ -11,8 +12,9 @@ import { generateBossDashboard, generateSelfHealingLaunchers } from '../kernel/b
 import { buildMasterPromptArsenal, getMasterPromptById, formatPromptArsenalReport } from '../kernel/prompt-arsenal.mjs';
 import { installGhostCTO, GHOST_PACKAGE_ROOT } from '../kernel/installer.mjs';
 import { startMcpStdioServer } from '../kernel/mcp-server.mjs';
+import { startLiveCockpitServer } from '../kernel/live-server.mjs';
 import { runDoctor, runSelfTrial } from '../kernel/doctor.mjs';
-import { estimateTokens } from '../kernel/lexer.mjs';
+import { analyzeSource, estimateTokens } from '../kernel/lexer.mjs';
 
 function parseArgs(argv) {
   const positional = [];
@@ -48,20 +50,95 @@ async function main() {
     case 'sync': {
       const targetDir = resolveTargetDir(1);
       const res = installGhostCTO(targetDir, {
-        createInitialCheckpoint: flags['no-checkpoint'] ? false : true
+        createInitialCheckpoint: flags['no-checkpoint'] ? false : true,
+        allowSelf: Boolean(flags['allow-self'])
       });
-      console.log(`\n🛡️  GhostCTO（影子 CTO）v1.2.0 已在项目中激活完毕`);
+      console.log(`\n🛡️  GhostCTO（影子 CTO）v2.0.0 已在项目中激活完毕`);
       console.log(`📂 项目目录: ${res.rootDir}`);
       console.log(`📊 商用健康分: ${res.score} / 100 分 （P0致命:${res.p0Count} | P1高危:${res.p1Count} | P2提醒:${res.p2Count}）`);
       console.log(`🚦 上线结论: ${res.launchVerdict}`);
       console.log(`📦 初始时光机存档: ${res.initialCheckpointId || '已就绪'}`);
       console.log(`🧠 跨软件记忆胶囊: .vibe/capsule.md (${res.capsuleTokens} tokens)`);
       console.log(`✨ 大师级提示词库: 已内置 8 套卡兹克/Karpathy 精选指令（自动注入本项目数据表与构建护栏）`);
-      console.log(`🖥️  老板可视化驾驶舱: ${res.dashboardPath}`);
+      console.log(`🖥️  离线版老板驾驶舱: ${res.dashboardPath}`);
+      console.log(`⚡ 实时版老板驾驶舱: ${res.liveCockpitMacPath}`);
       console.log(`🚀 一键自愈启动器: ${res.macLauncherPath}`);
-      console.log(`✅ 已同步适配 8 大国内外软件:`);
+      console.log(`✅ 已同步适配 8 大国内外软件（含 Git 提交防泄密门禁）:`);
       for (const p of res.platformsSynced) {
         console.log(`   - ${p}`);
+      }
+      break;
+    }
+
+    case 'studio':
+    case 'serve':
+    case 'ui': {
+      const targetDir = resolveTargetDir(1);
+      const portFlag = flags.port ? Number(flags.port) : 9777;
+      const info = await startLiveCockpitServer(targetDir, {
+        port: portFlag,
+        openBrowser: flags['no-open'] ? false : true
+      });
+      console.log(`\n⚡ GhostCTO 0-Token 实时交互驾驶舱已启动！`);
+      console.log(`🌐 访问地址: ${info.url}`);
+      console.log(`📂 守护项目: ${targetDir}`);
+      console.log(`（支持网页直接点击：0-Token 重新体检 / 一键备份代码+数据库 / 一键秒回退 / 中文按钮影响反查）`);
+      console.log(`（按 Ctrl+C 即可停止本驾驶舱窗口）\n`);
+      break;
+    }
+
+    case 'precommit-check': {
+      const targetDir = resolveTargetDir(1);
+      let stagedOut = '';
+      try {
+        stagedOut = execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACM'], {
+          cwd: targetDir,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore']
+        }).trim();
+      } catch {
+        break;
+      }
+      if (!stagedOut) break;
+
+      const stagedFiles = stagedOut.split('\n').map(s => s.trim()).filter(Boolean);
+      const blocked = [];
+
+      for (const rel of stagedFiles) {
+        const base = path.basename(rel);
+        if (base === '.env' || (base.startsWith('.env.') && base !== '.env.example')) {
+          blocked.push(`- [${rel}] 私密配置文件 (.env) 被意外加入提交，上传会导致全套密码泄密！`);
+          continue;
+        }
+        // Skip vendored engine or test fixtures
+        if (rel.startsWith('.vibe/') || /(^|\/)(test|tests|__tests__)\//.test(rel)) continue;
+        const ext = path.extname(rel).toLowerCase();
+        if (!['.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx', '.vue', '.svelte', '.py', '.html', '.json'].includes(ext)) {
+          continue;
+        }
+        const absFile = path.join(targetDir, rel);
+        if (!fs.existsSync(absFile)) continue;
+        try {
+          const raw = fs.readFileSync(absFile, 'utf8');
+          const lex = analyzeSource(raw, ext === '.json' ? '.js' : ext);
+          for (const s of lex.strings) {
+            for (const pat of SECRET_PATTERNS) {
+              if (pat.re.test(s.value)) {
+                blocked.push(`- [${rel}:${s.line}] 检测到硬编码真实密钥（${pat.name}）！`);
+              }
+            }
+          }
+        } catch {
+          // ignore unreadable binary
+        }
+      }
+
+      if (blocked.length > 0) {
+        console.error(`\n🛑 【影子 CTO (GhostCTO) 防泄密急刹车】已为您自动拦截本次危险的 Git 提交！`);
+        console.error(`发现以下一旦上传就会被黑客盗刷的敏感信息：`);
+        for (const line of blocked) console.error(`  ${line}`);
+        console.error(`\n👉 解决办法：请让 AI 把密钥移到 .env 环境变量中并加入 .gitignore，再重新提交。\n`);
+        process.exitCode = 1;
       }
       break;
     }
@@ -189,7 +266,8 @@ async function main() {
       writeMemoryCapsule(ws, audit);
       const dash = generateBossDashboard(ws, audit);
       const launch = generateSelfHealingLaunchers(ws);
-      console.log(`🖥️  已更新老板全景驾驶舱: ${dash.rootOutPath}`);
+      console.log(`🖥️  已更新离线全景驾驶舱: ${dash.rootOutPath}`);
+      console.log(`⚡ 已更新实时交互驾驶舱: ${launch.liveMacPath}`);
       console.log(`🚀 已更新双击自愈启动器: ${launch.macPath}`);
       break;
     }
@@ -204,7 +282,7 @@ async function main() {
       console.log(`- 常驻路由 AGENTS.md: ${agentsTokens} tokens (上限阈值 < 420 tokens) -> ${agentsTokens < 420 ? '✅ 极速缓存达标' : '❌ 超标'}`);
       for (const dir of skillEntries) {
         const skPath = path.join(skillsDir, dir.name, 'SKILL.md');
-        const tok = estimateTokens(fs.readFileSync(skPath, 'utf8'));
+        const tok = estimateTokens(skPath ? fs.readFileSync(skPath, 'utf8') : '');
         console.log(`- 按需技能 ${dir.name}/SKILL.md: ${tok} tokens (上限阈值 < 500 tokens) -> ${tok < 500 ? '✅ 达标' : '❌ 超标'}`);
       }
       break;
@@ -218,19 +296,22 @@ async function main() {
 
     default: {
       console.log(`
-GhostCTO (影子 CTO) v1.2.0 — 不懂代码做产品的防忽悠、防改崩「影子 CTO」
+GhostCTO (影子 CTO) v2.0.0 — 不懂代码做产品的防忽悠、防改崩「影子 CTO」
 
-常用命令:
-  ghost-cto try                        在本机跑一遍 1 秒全自动真机试跑（验证全部 6 大内核模块）
+零门槛用法（无需记命令）：
+  直接双击仓库里的「双击安装到我的项目.command」(Mac) 或「双击安装到我的项目.bat」(Windows)，弹窗选文件夹即自动安装并打开驾驶舱！
+
+命令行完整参考:
+  ghost-cto try                        在本机跑一遍 1 秒全自动真机试跑（验证全部内核模块）
   ghost-cto init [项目目录]            一键激活 8 大国内外软件(WorkBuddy/豆包/Trae/Antigravity/Cursor等) + 生成驾驶舱
-  ghost-cto doctor [项目目录]          真机验证已安装项目的 8 大平台配置与跨进程 MCP 通信是否畅通
+  ghost-cto studio [项目目录]          启动 0-Token 实时交互版老板驾驶舱（网页一键重测 / 秒备份 / 一键秒回退）
+  ghost-cto doctor [项目目录]          22 项真机验证：核验 8 平台配置、Token 预算与跨进程 MCP 双协议通信
   ghost-cto prompts [项目目录]         导出自动注入本项目家底的 8 套大师级提示词（卡兹克 & Karpathy 精选）
   ghost-cto audit [项目目录] [--ai]    0-Token 扫描假落库、假开关、空吞错、裸奔后台与断头接口
   ghost-cto xray [项目目录] [--ai]     0-Token 绘制 UI -> API -> 数据库 3D 真假穿透图
   ghost-cto impact <关键词>            改代码前锁定最小修改爆炸半径（支持直接搜中文按钮名）
   ghost-cto save "存档说明"            同时备份 Git 代码 + SQLite 数据库（双轨时光机）
   ghost-cto rewind [存档编号]          一键后悔药：把代码和数据库一起退回好状态
-  ghost-cto dashboard [项目目录]       重新生成《老板全景驾驶舱.html》与《双击启动项目》
   ghost-cto mcp                        启动零依赖 Stdio MCP 服务（供豆包桌面版/WorkBuddy/Trae/Cursor调用）
 `);
       break;

@@ -1,0 +1,43 @@
+name: GhostCTO Quality, Token Budget & Cross-OS Matrix
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.os }} / Node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [20, 22]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Configure Git identity for Time-Machine E2E tests
+        run: |
+          git config --global user.name "GhostCTO CI"
+          git config --global user.email "ci@ghost-cto.local"
+
+      - name: Run deterministic unit, polyglot & MCP pipe test suites
+        run: npm test
+
+      - name: Enforce strict KV-Cache Token Budget Gate (< 420 tokens)
+        run: node bin/ghost-cto.mjs budget
+
+      - name: Run full end-to-end live sandbox self-trial
+        run: node bin/ghost-cto.mjs try
+
+      - name: Verify clean zero-dependency npm package tarball
+        run: npm pack --dry-run

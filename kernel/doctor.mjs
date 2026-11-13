@@ -130,6 +130,7 @@ export async function runDoctor(targetRootDir) {
     { rel: '老板全景驾驶舱.html', label: '老板离线中文可视化驾驶舱' },
     { rel: '.vibe/大师级提示词库.md', label: '项目专属大师级提示词弹药库' },
     { rel: '双击启动项目.command', label: 'macOS 双击自愈启动器' },
+    { rel: '打开实时驾驶舱.command', label: '0-Token 实时交互版驾驶舱启动器' },
     { rel: '.vibe/capsule.md', label: '跨软件记忆胶囊 (.vibe/capsule.md)' }
   ];
 

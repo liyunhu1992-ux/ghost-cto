@@ -29,7 +29,11 @@ export const IGNORED_DIRS = new Set([
 export const IGNORED_FILES = new Set([
   '老板全景驾驶舱.html',
   '双击启动项目.command',
-  '双击启动项目.bat'
+  '双击启动项目.bat',
+  '打开实时驾驶舱.command',
+  '打开实时驾驶舱.bat',
+  '双击安装到我的项目.command',
+  '双击安装到我的项目.bat'
 ]);
 
 const CODE_EXTENSIONS = new Set([
@@ -145,6 +149,13 @@ function classifyFileRole(relPath, ext) {
     if (/(models|database|db|schema)\.py$/.test(lower)) return 'database';
     return 'backend';
   }
+  // Next.js App Router (`app/api/.../route.ts`), Pages Router (`pages/api/...`), & Nuxt `server/api/...` MUST be backend!
+  if (/(^|\/)(?:app\/api|pages\/api|server\/api|apps\/api|backend|routes|controllers|engines)\//.test(lower) || /\/route\.[mc]?[jt]sx?$/.test(lower)) {
+    return 'backend';
+  }
+  if (/(^|\/)(db|database|prisma|drizzle|models|schema)\//.test(lower)) {
+    return 'database';
+  }
   if (ext === '.html' || /\.(jsx|tsx|vue|svelte)$/.test(lower)) {
     return 'frontend';
   }
@@ -154,10 +165,7 @@ function classifyFileRole(relPath, ext) {
   if (/(render|view|studio|widget|canvas|styles)\.[mc]?[jt]s$/.test(lower)) {
     return 'frontend';
   }
-  if (/(^|\/)(db|database|prisma|drizzle|models|schema)\//.test(lower)) {
-    return 'database';
-  }
-  if (/(^|\/)(apps\/api|server|backend|api|routes|controllers|engines)/.test(lower) || /server\.[a-z]+$/.test(lower)) {
+  if (/(^|\/)(server|api)\//.test(lower) || /server\.[a-z]+$/.test(lower)) {
     return 'backend';
   }
   return 'shared';

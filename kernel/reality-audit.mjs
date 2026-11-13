@@ -3,10 +3,19 @@ import path from 'node:path';
 import { findMatchingBrace, indexToLine } from './lexer.mjs';
 import { buildLineageGraph } from './lineage-graph.mjs';
 
-/**
- * Run GhostCTO's 10-Dimension Deterministic Forensic Reality & Launch-Readiness Audit.
- * Executes locally in <80ms at 0 LLM token cost.
- */
+export const SECRET_PATTERNS = [
+  { name: 'OpenAI/DeepSeek/Moonshot API Key', re: /\bsk-[A-Za-z0-9]{20,}\b/ },
+  { name: '阿里云 AccessKey (LTAI)', re: /\bLTAI[A-Za-z0-9]{12,20}\b/ },
+  { name: '腾讯云 SecretId (AKID)', re: /\bAKID[A-Za-z0-9]{13,32}\b/ },
+  { name: 'AWS Access Key (AKIA)', re: /\bAKIA[0-9A-Z]{16}\b/ },
+  { name: 'GitHub Token', re: /\bgh[pousr]_[A-Za-z0-9]{30,}\b/ },
+  { name: 'Google API Key', re: /\bAIza[0-9A-Za-z_-]{35}\b/ },
+  { name: 'Stripe Live Secret', re: /\bsk_live_[0-9a-zA-Z]{24,}\b/ },
+  {
+    name: '数据库连接串明文密码',
+    re: /(?:postgres|postgresql|mysql|mongodb(?:\+srv)?|redis):\/\/[^:\s'"`]+:(?!password\b|123456\b|postgres\b|root\b|your[_-]?password)[^@\s'"`]{6,}@(?!localhost\b|127\.0\.0\.1\b)[a-zA-Z0-9.-]+/i
+  }
+];
 export function runRealityAudit(workspace, existingLineage = null) {
   const lineage = existingLineage || buildLineageGraph(workspace);
   const findings = [];
@@ -89,16 +98,10 @@ export function runRealityAudit(workspace, existingLineage = null) {
     }
   }
 
-  // 5. P0: Hardcoded API Keys & Exposed .env
-  const secretPatterns = [
-    { name: 'OpenAI/DeepSeek API Key', re: /\bsk-[A-Za-z0-9]{20,}\b/ },
-    { name: 'AWS Access Key', re: /\bAKIA[0-9A-Z]{16}\b/ },
-    { name: 'GitHub Token', re: /\bghp_[A-Za-z0-9]{30,}\b/ },
-    { name: 'Google API Key', re: /\bAIza[0-9A-Za-z_-]{35}\b/ }
-  ];
+  // 5. P0: Hardcoded API Keys & Exposed .env (Domestic + Global Cloud & DB URIs)
   for (const [, modData] of lineage.fileDataMap.entries()) {
     for (const s of modData.lex.strings) {
-      for (const pat of secretPatterns) {
+      for (const pat of SECRET_PATTERNS) {
         if (pat.re.test(s.value)) {
           findings.push({
             id: 'HARDCODED_SECRET',
@@ -200,7 +203,7 @@ export function runRealityAudit(workspace, existingLineage = null) {
       });
     }
 
-    // 6C. Fake UI Handlers (`onClick={() => {}}`, `alert('敬请期待'/'开发中')`)
+    // 6C. Fake UI Handlers (React `onClick={() => {}}`, Vue `@click="() => {}"`, `alert('敬请期待'/'开发中')`)
     if (file.role === 'frontend') {
       const noopClickRe = /\bonClick\s*=\s*\{\s*(?:\(\s*\)|[a-zA-Z0-9_]+)\s*=>\s*\{\s*\}\s*\}/g;
       while ((m = noopClickRe.exec(cleanCode)) !== null) {
@@ -215,6 +218,22 @@ export function runRealityAudit(workspace, existingLineage = null) {
           oneClickPrompt: `请把 ${file.relPath} 第 ${ln} 行的空按钮绑定到真实的业务逻辑或先隐藏该未完成按钮。`,
           aiDirective: `${file.relPath}:${ln}|FAKE_UI_HANDLER|Wire empty onClick noop to real handler or remove stub`
         });
+      }
+      if (file.ext === '.vue' || file.ext === '.svelte' || file.ext === '.html') {
+        const vueNoopRe = /(?:@click|v-on:click|on:click)\s*=\s*['"]\s*(?:\(\s*\)\s*=>\s*\{\s*\}|\{\s*\})\s*['"]/g;
+        while ((m = vueNoopRe.exec(modData.raw)) !== null) {
+          const ln = modData.raw.slice(0, m.index).split('\n').length;
+          findings.push({
+            id: 'FAKE_UI_HANDLER',
+            severity: 'P1',
+            title: '假按钮：模板点击事件是空的（点了毫无反应）',
+            file: file.relPath,
+            line: ln,
+            founderImpact: '界面上画了按钮，但模板点击绑定是空的 `{}`，客户点击没有任何反应。',
+            oneClickPrompt: `请把 ${file.relPath} 第 ${ln} 行的空点击按钮绑定到真实的业务函数。`,
+            aiDirective: `${file.relPath}:${ln}|FAKE_UI_HANDLER|Wire empty @click noop to real handler`
+          });
+        }
       }
 
       // Detect Fake Client-Only Save/Toggle (shows "已保存/已上架/保存成功" toast without ANY network request!)

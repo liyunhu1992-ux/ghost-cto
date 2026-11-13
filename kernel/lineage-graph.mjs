@@ -70,10 +70,11 @@ function markReachability(fileDataMap, workspace) {
       entryAbsPaths.add(absPath);
       continue;
     }
-    // Standard frontend roots: main.*, index.*, App.*, *.html, Next.js pages/ or app/**/page.*
+    // Standard frontend roots: main.*, index.*, App.* (.jsx/.tsx/.vue/.svelte), *.html, Next.js/Nuxt/SvelteKit pages/ or app/
     if (
       modData.file.ext === '.html' ||
-      /^(?:main|index|App)\.[jt]sx?$/i.test(base) ||
+      /^(?:main|index|App)\.(?:[mc]?[jt]sx?|vue|svelte)$/i.test(base) ||
+      /^\+(?:page|layout)\.svelte$/i.test(base) ||
       /(?:^|\/)(?:pages|app)\//.test(rel)
     ) {
       entryAbsPaths.add(absPath);
@@ -201,6 +202,28 @@ export function extractImportsAndReExports(cleanCode, fromAbsPath, packagesMap) 
 export function resolveModuleSpecifier(spec, fromDir, packagesMap) {
   if (!spec) return null;
 
+  // 0. Next.js / Vite / Nuxt path aliases (`@/components/...` or `~/lib/...`)
+  if (spec.startsWith('@/') || spec.startsWith('~/')) {
+    const sub = spec.slice(2);
+    let cursor = fromDir;
+    for (let depth = 0; depth < 7; depth++) {
+      if (
+        fs.existsSync(path.join(cursor, 'package.json')) ||
+        fs.existsSync(path.join(cursor, 'tsconfig.json')) ||
+        fs.existsSync(path.join(cursor, 'jsconfig.json'))
+      ) {
+        const inSrc = probeFileCandidates(path.join(cursor, 'src', sub));
+        if (inSrc) return inSrc;
+        const inRoot = probeFileCandidates(path.join(cursor, sub));
+        if (inRoot) return inRoot;
+      }
+      const parent = path.dirname(cursor);
+      if (parent === cursor) break;
+      cursor = parent;
+    }
+    return null;
+  }
+
   // 1. Workspace package import (e.g. @mengine/db)
   if (!spec.startsWith('.') && !spec.startsWith('/')) {
     if (packagesMap.has(spec)) {
@@ -222,7 +245,22 @@ export function resolveModuleSpecifier(spec, fromDir, packagesMap) {
 }
 
 function probeFileCandidates(basePath) {
-  const exts = ['', '.mjs', '.js', '.ts', '.tsx', '.jsx', '.cjs', '/index.mjs', '/index.js', '/index.ts', '/index.tsx'];
+  const exts = [
+    '',
+    '.mjs',
+    '.js',
+    '.ts',
+    '.tsx',
+    '.jsx',
+    '.vue',
+    '.svelte',
+    '.cjs',
+    '/index.mjs',
+    '/index.js',
+    '/index.ts',
+    '/index.tsx',
+    '/index.vue'
+  ];
   for (const ext of exts) {
     const full = basePath + ext;
     try {
@@ -352,6 +390,38 @@ function inspectEffects(cleanSnippet, mutableGlobalNames) {
   while ((m = prismaReadRe.exec(cleanSnippet)) !== null) {
     if (m[1] !== 'prepare') dbReads.add(m[1]);
   }
+
+  // Supabase JS Client: supabase.from('orders').insert / update / upsert / delete / select
+  const supaRe = /\.from\s*\(\s*['"`]([a-zA-Z0-9_]+)['"`]\s*\)\s*\.\s*(insert|update|upsert|delete|select)\s*\(/g;
+  while ((m = supaRe.exec(cleanSnippet)) !== null) {
+    if (m[2] === 'select') dbReads.add(m[1]);
+    else dbWrites.add(m[1]);
+  }
+
+  // Drizzle ORM: db.insert(orders) / db.update(orders) / db.delete(orders) / db.select().from(orders)
+  const drizzleWriteRe = /\bdb\.(?:insert|update|delete)\s*\(\s*([a-zA-Z0-9_]+)\s*\)/g;
+  while ((m = drizzleWriteRe.exec(cleanSnippet)) !== null) dbWrites.add(m[1]);
+  const drizzleReadRe = /\bdb\.select\s*\([^)]*\)\s*\.from\s*\(\s*([a-zA-Z0-9_]+)\s*\)/g;
+  while ((m = drizzleReadRe.exec(cleanSnippet)) !== null) dbReads.add(m[1]);
+
+  // Mongoose / Sequelize Models: OrderModel.create / findOneAndUpdate / deleteOne / findById
+  const mongooseWriteRe = /\b([A-Z][A-Za-z0-9_]*)\.(?:create|insertMany|findOneAndUpdate|findByIdAndUpdate|updateOne|updateMany|deleteOne|deleteMany|findByIdAndDelete)\s*\(/g;
+  while ((m = mongooseWriteRe.exec(cleanSnippet)) !== null) {
+    if (!['Object', 'Promise', 'Array', 'JSON', 'Math'].includes(m[1])) dbWrites.add(m[1]);
+  }
+  const mongooseReadRe = /\b([A-Z][A-Za-z0-9_]*)\.(?:find|findOne|findById|countDocuments)\s*\(/g;
+  while ((m = mongooseReadRe.exec(cleanSnippet)) !== null) {
+    if (!['Object', 'Promise', 'Array', 'JSON', 'Math'].includes(m[1])) dbReads.add(m[1]);
+  }
+
+  // Python SQLAlchemy / Django ORM: session.add(...) / Model.objects.create(...) / session.query(Model)
+  if (/\b(?:session|db\.session)\.(?:add|add_all|delete|commit)\s*\(/.test(cleanSnippet)) {
+    dbWrites.add('sqlalchemy_orm');
+  }
+  const djangoWriteRe = /\b([A-Z][A-Za-z0-9_]*)\.objects\.(?:create|bulk_create|update_or_create|update|delete)\s*\(/g;
+  while ((m = djangoWriteRe.exec(cleanSnippet)) !== null) dbWrites.add(m[1]);
+  const pyReadRe = /\b(?:([A-Z][A-Za-z0-9_]*)\.objects\.(?:filter|get|all)|(?:session|db\.session)\.query\s*\(\s*([A-Z][A-Za-z0-9_]*))/g;
+  while ((m = pyReadRe.exec(cleanSnippet)) !== null) dbReads.add(m[1] || m[2] || 'orm_query');
 
   // Volatile in-memory mutations on module-scope variables
   for (const gName of mutableGlobalNames) {
@@ -491,15 +561,23 @@ function extractFrontendCalls(fileDataMap) {
     const { file, lex, isReachable } = modData;
     if (file.role !== 'frontend' || !isReachable) continue;
 
-    // Inspect extracted string & template literals starting with `/api/`
+    // Inspect extracted string & template literals containing `/api/` (supporting full URLs in wx.request / uni.request too)
     for (const str of lex.strings) {
-      const val = str.value.trim();
-      if (!val.startsWith('/api/')) continue;
+      const rawTrim = str.value.trim();
+      const apiIdx = rawTrim.indexOf('/api/');
+      if (apiIdx === -1) continue;
+      // Only accept either direct `/api/...` or `http(s)://.../api/...` or `${...}/api/...`
+      if (apiIdx > 0 && !/^(?:https?:\/\/[^/]+|\$\{expr\})$/.test(rawTrim.slice(0, apiIdx))) continue;
+      const val = rawTrim.slice(apiIdx);
 
-      const ctxBefore = lex.cleanCode.slice(Math.max(0, str.start - 60), str.start);
+      const ctxBefore = lex.cleanCode.slice(Math.max(0, str.start - 110), str.start);
 
-      // Verify it's part of a network call (fetch, apiFetch, axios, sendBeacon, request, client, etc.)
-      if (!/(?:fetch|api[A-Za-z]*|axios|request|http|sendBeacon|client)\s*(?:\.[a-zA-Z]+)?\s*\(\s*$/i.test(ctxBefore)) {
+      // Verify it's part of a network call (fetch, axios, useFetch, useSWR, or WeChat/Uni/Taro `wx.request({ url: '...' })`)
+      const isDirectCall = /(?:fetch|useFetch|useSWR|[A-Za-z0-9_$]*(?:Fetch|Api|Post|Put|Patch|Delete|Request|Client)|axios|request|http|sendBeacon|client)\s*(?:\.[a-zA-Z]+)?\s*\(\s*$/i.test(
+        ctxBefore
+      );
+      const isMiniProgramUrlProp = /(?:wx|uni|Taro|my|tt)\.request\s*\(\s*\{[\s\S]{0,90}?\burl\s*:\s*$/i.test(ctxBefore);
+      if (!isDirectCall && !isMiniProgramUrlProp) {
         continue;
       }
 
@@ -713,8 +791,8 @@ function extractBackendRoutes(fileDataMap) {
       continue;
     }
 
-    // Pattern C: Next.js App Router (`app/api/.../route.ts|js`)
-    const nextMatch = file.relPath.match(/(?:^|\/)app(\/api\/.+)\/route\.[jt]sx?$/);
+    // Pattern C: Next.js App Router (`app/api/.../route.ts|js`) & Pages Router (`pages/api/...ts|js`)
+    const nextMatch = file.relPath.match(/(?:^|\/)app(\/api\/.+)\/route\.[mc]?[jt]sx?$/);
     if (nextMatch) {
       const rawRoute = nextMatch[1];
       const nextFnRe = /export\s+(?:async\s+)?function\s+(GET|POST|PUT|DELETE|PATCH)\s*\([^)]*\)\s*\{/g;
@@ -723,7 +801,7 @@ function extractBackendRoutes(fileDataMap) {
         const openBrace = m.index + m[0].length - 1;
         const closeBrace = findMatchingBrace(skeleton, openBrace);
         const handlerSnippet = closeBrace > openBrace ? cleanCode.slice(openBrace, closeBrace + 1) : '';
-        const isAuthenticated = /getServerSession|auth\(|verifyToken|cookies\(\)|headers\(\)/.test(handlerSnippet);
+        const isAuthenticated = /getServerSession|auth\(|verifyToken|cookies\(\)|headers\(\)|currentUser/.test(handlerSnippet);
         const effects = traceTransitiveEffects(handlerSnippet, absPath, fileDataMap);
 
         routes.push({
@@ -737,6 +815,23 @@ function extractBackendRoutes(fileDataMap) {
           ...effects
         });
       }
+    }
+
+    const pagesApiMatch = file.relPath.match(/(?:^|\/)pages(\/api\/.+)\.[mc]?[jt]sx?$/);
+    if (pagesApiMatch) {
+      const rawRoute = pagesApiMatch[1].replace(/\/index$/, '');
+      const isAuthenticated = /getServerSession|verifyToken|authorization|req\.cookies|checkAdmin/i.test(cleanCode);
+      const effects = traceTransitiveEffects(cleanCode, absPath, fileDataMap);
+      routes.push({
+        rawPath: rawRoute,
+        normPath: normalizeApiPath(rawRoute),
+        isPrefix: false,
+        method: 'ANY',
+        file: file.relPath,
+        line: 1,
+        isAuthenticated,
+        ...effects
+      });
     }
   }
 
@@ -940,12 +1035,19 @@ function classifyMatchedChain(call, route) {
 function extractSchemaTables(workspace, fileDataMap) {
   const tables = new Set();
   const createTableRe = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"'[]?([a-zA-Z0-9_]+)[`"'\]]?/gi;
+  const drizzleTableRe = /\b(?:sqliteTable|pgTable|mysqlTable)\s*\(\s*['"`]([a-zA-Z0-9_]+)['"`]/g;
+  const mongooseModelRe = /\bmongoose\.model\s*\(\s*['"`]([A-Za-z0-9_]+)['"`]/g;
+  const pyTableNameRe = /__tablename__\s*=\s*['"]([a-zA-Z0-9_]+)['"]/g;
+  const supaFromRe = /\.from\s*\(\s*['"`]([a-zA-Z0-9_]+)['"`]\s*\)\s*\.\s*(?:insert|update|upsert|delete|select)\s*\(/g;
 
   for (const [, modData] of fileDataMap.entries()) {
+    const code = modData.lex.cleanCode;
     let m;
-    while ((m = createTableRe.exec(modData.lex.cleanCode)) !== null) {
-      tables.add(m[1]);
-    }
+    while ((m = createTableRe.exec(code)) !== null) tables.add(m[1]);
+    while ((m = drizzleTableRe.exec(code)) !== null) tables.add(m[1]);
+    while ((m = mongooseModelRe.exec(code)) !== null) tables.add(m[1]);
+    while ((m = pyTableNameRe.exec(code)) !== null) tables.add(m[1]);
+    while ((m = supaFromRe.exec(code)) !== null) tables.add(m[1]);
   }
   for (const sqlFile of workspace.sqlFiles) {
     try {
