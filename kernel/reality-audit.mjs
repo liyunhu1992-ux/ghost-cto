@@ -138,10 +138,29 @@ export function runRealityAudit(workspace, existingLineage = null) {
 
   // 6. Per-File Structural Forensics: Silent Catch, Unsafe Proxy, Fake UI, Plaintext Password, God File
   for (const [, modData] of lineage.fileDataMap.entries()) {
-    const { file, lex } = modData;
+    const { file, lex, isReachable } = modData;
+    if (!isReachable) continue;
     const { cleanCode, skeleton, lineOffsets, totalLines } = lex;
 
-    // 6A. Empty Silent `catch {}` swallowing errors
+    // 6A. Empty Silent `catch {}` (JS/TS) or `except ...: pass` (Python) swallowing errors
+    if (file.ext === '.py') {
+      const pyPassRe = /\bexcept\b[^\n:]*:\s*\n\s*pass\b/g;
+      let pm;
+      while ((pm = pyPassRe.exec(cleanCode)) !== null) {
+        const pyLine = indexToLine(lineOffsets, pm.index);
+        findings.push({
+          id: 'SILENT_CATCH',
+          severity: 'P1',
+          title: 'Python except pass 悄悄吞掉报错（出错了也不吭声）',
+          file: file.relPath,
+          line: pyLine,
+          founderImpact: `${file.relPath} 第 ${pyLine} 行用 except: pass 直接吞掉了异常，出错时前端拿不到任何原因。`,
+          oneClickPrompt: `请修复 ${file.relPath} 第 ${pyLine} 行的 except: pass，记录错误日志并返回明确中文报错。`,
+          aiDirective: `${file.relPath}:${pyLine}|SILENT_CATCH|Replace Python except: pass with structured error logging/response`
+        });
+      }
+    }
+
     const catchRe = /\bcatch\s*(?:\([^)]*\))?\s*\{/g;
     let m;
     while ((m = catchRe.exec(skeleton)) !== null) {
@@ -198,6 +217,27 @@ export function runRealityAudit(workspace, existingLineage = null) {
         });
       }
 
+      // Detect Fake Client-Only Save/Toggle (shows "已保存/已上架/保存成功" toast without ANY network request!)
+      for (const [, fnObj] of modData.functions.entries()) {
+        const claimsSaved = /(?:showToast|notify|toast|alert|message\.success)\s*\([\s\S]{0,140}?(?:已[^\n)'"]{0,12}(?:保存|创建|开通|上架|下架|删除|提交|发布|更新|同步)|(?:保存|创建|开通|上架|删除|提交|修改|设置)成功)/.test(
+          fnObj.cleanBody
+        );
+        const hasNetworkOrPropAction =
+          /\b(?:fetch|api[A-Za-z]*|axios|request|sendBeacon|localStorage\.setItem|on[A-Z][A-Za-z]+)\s*\(/.test(fnObj.cleanBody);
+        if (claimsSaved && !hasNetworkOrPropAction) {
+          findings.push({
+            id: 'FAKE_CLIENT_ONLY_SAVE',
+            severity: 'P1',
+            title: `假保存/假开关：函数 ${fnObj.name} 提示操作成功，但根本没连后端！`,
+            file: file.relPath,
+            line: fnObj.line,
+            founderImpact: `你在界面上点击时，它弹出了“已上架/已保存”的成功提示糊弄你，但实际上只改了浏览器临时变量，没有发任何接口请求——按一下刷新键（F5）所有操作瞬间作废！`,
+            oneClickPrompt: `请把 ${file.relPath} 第 ${fnObj.line} 行的 ${fnObj.name} 函数接通真实后端 API 与数据库持久化，不要只改前端本地变量假装成功。`,
+            aiDirective: `${file.relPath}:${fnObj.line}|FAKE_CLIENT_ONLY_SAVE|${fnObj.name}() shows success toast without backend API/DB persistence`
+          });
+        }
+      }
+
       const placeholderRe = /(?:敬请期待|功能开发中|即将上线|TODO:\s*implement|coming\s+soon)/gi;
       while ((m = placeholderRe.exec(cleanCode)) !== null) {
         const ln = indexToLine(lineOffsets, m.index);
@@ -252,6 +292,39 @@ export function runRealityAudit(workspace, existingLineage = null) {
     }
   }
 
+  // 6.4 Demo Shell Architecture Detection (Frontend + Backend exist, but ZERO real database anywhere!)
+  const hasFrontend = workspace.codeFiles.some(f => f.role === 'frontend');
+  const hasBackend = workspace.codeFiles.some(f => f.role === 'backend');
+  const realDbWriteCount = lineage.chains.filter(c => c.status === 'REAL_DB_WRITE' || c.status === 'REAL_AI_AND_DB').length;
+  const hasExternalCloudDb = workspace.packageJsons.some(p => {
+    try {
+      const txt = fs.readFileSync(p.absPath, 'utf8');
+      return /supabase|firebase|mongoose|mongodb|pg|mysql2|@planetscale|@neondatabase|prisma|drizzle-orm/.test(txt);
+    } catch {
+      return false;
+    }
+  });
+
+  if (
+    hasFrontend &&
+    hasBackend &&
+    workspace.dbFiles.length === 0 &&
+    lineage.schemaTables.length === 0 &&
+    realDbWriteCount === 0 &&
+    !hasExternalCloudDb
+  ) {
+    findings.push({
+      id: 'DEMO_SHELL_NO_DATABASE',
+      severity: 'P0',
+      title: '纯样板房空壳预警：整个项目尚未接入任何真实数据库！',
+      file: workspace.codeFiles.find(f => f.role === 'backend')?.relPath || '.',
+      line: 1,
+      founderImpact: '当前项目虽然有漂亮的界面和本地服务，但底层一个数据库表都没有！界面上的门店、客户、算力豆全是代码里写死的静态样板数据，无法真正保存客户业务。',
+      oneClickPrompt: '请为当前项目接入真实的 SQLite（node:sqlite）数据库持久化层，把写死的静态演示列表改造为真实可增删改查落库的业务数据。',
+      aiDirective: `ROOT:1|DEMO_SHELL_NO_DATABASE|Zero DB files/tables/writes detected; app is a static UI prototype shell`
+    });
+  }
+
   // 6.5 Zombie Unmounted Frontend Files (Dead code trap where AI edits files not connected to App!)
   if (lineage.zombieFiles && lineage.zombieFiles.length > 0) {
     findings.push({
@@ -266,29 +339,30 @@ export function runRealityAudit(workspace, existingLineage = null) {
     });
   }
 
-  // 7. Static Build Lag Trap (`src/` newer than `dist/index.html`)
+  // 7. Static Build Lag Trap (`src/` newer than `dist/index.html` or `public/index.html`)
   for (const sb of workspace.staleBuilds) {
+    const runBuild = sb.buildCmd || (sb.appDir === '.' ? 'npm run build' : `npm --prefix ${sb.appDir} run build`);
     if (sb.isStale) {
       findings.push({
         id: 'STALE_STATIC_DIST',
         severity: 'P0',
-        title: `网页未刷新假象：${sb.appDir} 改了源码但没重新打包 dist！`,
+        title: `网页未刷新假象：${sb.newestSrcFile} 改了源码但没重新生成 ${sb.distRelPath}！`,
         file: sb.newestSrcFile,
         line: 1,
         founderImpact: `最新修改的代码在 ${sb.newestSrcFile}，但服务器展示的是旧的 ${sb.distRelPath} 打包文件（落后 ${sb.lagSeconds} 秒）。你现在刷新浏览器看到的根本不是最新代码！`,
-        oneClickPrompt: `请立即在 ${sb.appDir} 运行 npm run build 重新生成最新 ${sb.distRelPath} 静态包，让我刷新网页就能看到最新效果。`,
-        aiDirective: `${sb.distRelPath}:1|STALE_STATIC_DIST|${sb.newestSrcFile} is ${sb.lagSeconds}s newer than dist; run build in ${sb.appDir}`
+        oneClickPrompt: `请立即运行 \`${runBuild}\` 重新生成最新 ${sb.distRelPath} 静态页面，让我刷新浏览器就能看到最新效果。`,
+        aiDirective: `${sb.distRelPath}:1|STALE_STATIC_DIST|${sb.newestSrcFile} is ${sb.lagSeconds}s newer than ${sb.distRelPath}; run \`${runBuild}\``
       });
     } else {
       findings.push({
         id: 'STATIC_DIST_ARCHITECTURE_NOTE',
         severity: 'P2',
-        title: `静态打包托管提醒（${sb.appDir}）`,
+        title: `静态打包托管提醒（${sb.distRelPath}）`,
         file: sb.distRelPath,
         line: 1,
-        founderImpact: `当前 ${sb.appDir} 采用预打包 dist 模式运行（目前包是最新的）。提醒 AI 以后每次改完界面，必须顺手自动打包，否则网页不会变。`,
-        oneClickPrompt: `以后每次修改 ${sb.appDir}/src 后，请务必自动执行 build 更新 ${sb.distRelPath}。`,
-        aiDirective: `${sb.distRelPath}:1|STATIC_DIST_NOTE|Always run build in ${sb.appDir} after editing src/`
+        founderImpact: `当前通过预编译 ${sb.distRelPath} 提供画面（目前包是最新的）。提醒 AI 以后每次改完源码，必须自动执行 \`${runBuild}\`，否则网页不会变。`,
+        oneClickPrompt: `以后每次修改源码后，请务必自动执行 \`${runBuild}\` 更新 ${sb.distRelPath}。`,
+        aiDirective: `${sb.distRelPath}:1|STATIC_DIST_NOTE|Always run \`${runBuild}\` after editing source files`
       });
     }
   }

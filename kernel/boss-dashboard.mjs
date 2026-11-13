@@ -371,15 +371,34 @@ export function generateBossDashboard(workspace, audit) {
       document.getElementById('panel-' + id).classList.add('active');
       btn.classList.add('active');
     }
+    function copySafe(text) {
+      function showOk() {
+        const t = document.getElementById('toast');
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 2600);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showOk).catch(() => fallbackCopy(text, showOk));
+      } else {
+        fallbackCopy(text, showOk);
+      }
+    }
+    function fallbackCopy(text, cb) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try { document.execCommand('copy'); cb(); } catch (e) {}
+      document.body.removeChild(ta);
+    }
     document.querySelectorAll('.copy-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const text = btn.getAttribute('data-copy');
         if (!text) return;
-        navigator.clipboard.writeText(text).then(() => {
-          const t = document.getElementById('toast');
-          t.style.display = 'block';
-          setTimeout(() => { t.style.display = 'none'; }, 2600);
-        });
+        copySafe(text);
       });
     });
   </script>
@@ -405,7 +424,7 @@ export function generateSelfHealingLaunchers(workspace) {
   const portsStr = runtime.ports.join(' ');
 
   const staleBuildCmds = workspace.staleBuilds
-    .map(sb => (sb.appDir === '.' ? 'npm run build' : `npm --prefix "${sb.appDir}" run build`))
+    .map(sb => sb.buildCmd || (sb.appDir === '.' ? 'npm run build' : `npm --prefix "${sb.appDir}" run build`))
     .join('\n');
 
   // macOS double-clickable `.command`

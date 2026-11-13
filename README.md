@@ -14,9 +14,13 @@
 [![Always-On Prompt](https://img.shields.io/badge/Router_Footprint-387_Tokens_(90%25_KV_Cached)-7C3AED?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-18181B?style=flat-square)](./LICENSE)
 
-[**English README**](./README.en.md) ｜ [**小白英文弹窗与国内软件急救手册**](./docs/POPUP_DICTIONARY.md)
+[**English README**](./README.en.md) ｜ [**安装与国内软件配置指南**](./INSTALL.md) ｜ [**小白英文弹窗急救手册**](./docs/POPUP_DICTIONARY.md) ｜ [**安全说明**](./SECURITY.md)
 
 </div>
+
+<p align="center">
+  <img src="./docs/architecture.svg" width="100%" alt="GhostCTO Architecture" />
+</p>
 
 ---
 
@@ -106,10 +110,12 @@ npx ghost-cto init /path/to/your-project
 
 | 命令 / MCP 工具 | 作用（0 Token 本地确定性执行） |
 | :--- | :--- |
-| `ghost-cto init [目录]` | 一键同步 8 大国内外软件规则/Skills/MCP + 创建初始双轨存档 + 生成驾驶舱与双击启动器 |
-| `ghost-cto audit [目录]` / `ghost_reality_audit` | 10 维真假功能与商用上线安检（抓假落库、裸奔 `/api/admin`、空吞错、泄漏密钥） |
-| `ghost-cto xray [目录]` / `ghost_xray_lineage` | 绘制 `前端 -> API -> 跨包函数 -> SQLite 表 / 真实外部大模型` 全栈穿透表 |
-| `ghost-cto impact "按钮中文名"` / `ghost_blast_radius` | 改代码前按中文界面词或模块名锁定最小修改文件集与必跑 `build` 命令 |
+| `ghost-cto try` | 在本机沙箱自动跑完 1 秒全链路真机演练（测试 8 平台安装、MCP 跨进程通信、抓假功能与数据库回退） |
+| `ghost-cto init [目录]` | 一键同步 8 大国内外软件规则/Skills/MCP（增量合并绝不覆盖原有工具）+ 创建初始存档 + 生成驾驶舱 |
+| `ghost-cto doctor [目录]` | 19 项真机体检：核验各软件配置文件、Token 预算，并从外部目录拉起真实子进程测试双协议 MCP 通信 |
+| `ghost-cto audit [目录]` / `ghost_reality_audit` | 10 维真假功能与商用上线安检（抓样板房空壳、假保存、裸奔 `/api/admin`、空吞错、泄漏密钥） |
+| `ghost-cto xray [目录]` / `ghost_xray_lineage` | 绘制 `前端 -> API -> 跨包函数 -> SQLite 表 / 真实外部大模型` 全栈穿透表（支持 JS/TS/JSX/HTML/Python） |
+| `ghost-cto impact "按钮中文名"` / `ghost_blast_radius` | 改代码前按中文界面词或模块名锁定最小修改文件集与必跑打包命令 |
 | `ghost-cto save "说明"` / `ghost_save_checkpoint` | 原子备份 Git 代码与全部 `.sqlite`/`.db`（含 `-wal` 日志与 SHA-256 校验） |
 | `ghost-cto rewind [编号]` / `ghost_rewind_checkpoint` | 自动先存一份急救备份，再把代码和数据库一起原子回退到指定存档点 |
 | `ghost-cto learn --rule "..."` | 把踩过的坑写入 `.vibe/immune-rules.json`，生成自定义静态扫描规则永久免疫 |

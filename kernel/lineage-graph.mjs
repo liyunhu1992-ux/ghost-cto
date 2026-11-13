@@ -33,7 +33,7 @@ function buildModuleSymbolIndex(workspace) {
     } catch {
       continue;
     }
-    const lex = analyzeSource(raw);
+    const lex = analyzeSource(raw, file.ext);
     const { imports, reExports } = extractImportsAndReExports(lex.cleanCode, file.absPath, workspace.packagesMap);
     const functions = extractFunctions(raw, lex);
     const mutableGlobals = extractMutableGlobals(lex);
@@ -70,8 +70,9 @@ function markReachability(fileDataMap, workspace) {
       entryAbsPaths.add(absPath);
       continue;
     }
-    // Standard frontend roots: main.*, index.*, App.*, Next.js pages/ or app/**/page.*
+    // Standard frontend roots: main.*, index.*, App.*, *.html, Next.js pages/ or app/**/page.*
     if (
+      modData.file.ext === '.html' ||
       /^(?:main|index|App)\.[jt]sx?$/i.test(base) ||
       /(?:^|\/)(?:pages|app)\//.test(rel)
     ) {
@@ -103,9 +104,11 @@ function markReachability(fileDataMap, workspace) {
   }
 
   for (const [absPath, modData] of fileDataMap.entries()) {
-    if (modData.file.role === 'frontend') {
+    if (modData.file.role === 'frontend' && modData.file.ext !== '.html') {
       const dir = path.dirname(absPath);
-      const hasSiblingEntry = [...appDirsWithEntry].some(entryDir => dir.startsWith(entryDir));
+      const hasSiblingEntry = [...appDirsWithEntry].some(
+        entryDir => dir === entryDir || dir.startsWith(entryDir + path.sep)
+      );
       if (hasSiblingEntry && !visited.has(absPath)) {
         modData.isReachable = false;
       }
@@ -114,14 +117,14 @@ function markReachability(fileDataMap, workspace) {
 }
 
 /**
- * Resolve ES module imports AND barrel re-exports (`export * from`, `export { x } from`).
+ * Resolve ES module imports, dynamic `import()`, CJS `require()`, AND barrel re-exports.
  */
 export function extractImportsAndReExports(cleanCode, fromAbsPath, packagesMap) {
   const resolved = new Map(); // importedSymbol -> { targetAbsPath, exportedName }
   const reExports = []; // Array<{ targetAbsPath, star: boolean, map: Map<exportedAlias, origName> }>
   const fromDir = path.dirname(fromAbsPath);
 
-  // Named + default imports: import { a, b as c } from 'spec' / import d from 'spec'
+  // Named + default + namespace imports: import { a, b as c } from 'spec' / import d from 'spec' / import * as ns from 'spec'
   const importRegex = /import\s+([\s\S]*?)\s+from\s+['"]([^'"]+)['"]/g;
   let m;
   while ((m = importRegex.exec(cleanCode)) !== null) {
@@ -129,6 +132,11 @@ export function extractImportsAndReExports(cleanCode, fromAbsPath, packagesMap) 
     const spec = m[2].trim();
     const targetAbs = resolveModuleSpecifier(spec, fromDir, packagesMap);
     if (!targetAbs) continue;
+
+    const nsMatch = clause.match(/\*\s+as\s+([A-Za-z_$][A-Za-z0-9_$]*)/);
+    if (nsMatch) {
+      resolved.set(nsMatch[1], { targetAbsPath: targetAbs, exportedName: '*' });
+    }
 
     const namedMatch = clause.match(/\{([\s\S]*?)\}/);
     if (namedMatch) {
@@ -140,9 +148,18 @@ export function extractImportsAndReExports(cleanCode, fromAbsPath, packagesMap) 
         }
       }
     }
-    const defaultPart = clause.replace(/\{[\s\S]*?\}/, '').replace(/,/g, '').trim();
+    const defaultPart = clause.replace(/\{[\s\S]*?\}/, '').replace(/\*\s+as\s+[A-Za-z0-9_$]+/, '').replace(/,/g, '').trim();
     if (defaultPart && !defaultPart.startsWith('*')) {
       resolved.set(defaultPart, { targetAbsPath: targetAbs, exportedName: 'default' });
+    }
+  }
+
+  // Dynamic lazy import('...') & CommonJS require('...')
+  const dynImportRe = /\b(?:import|require)\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+  while ((m = dynImportRe.exec(cleanCode)) !== null) {
+    const targetAbs = resolveModuleSpecifier(m[1].trim(), fromDir, packagesMap);
+    if (targetAbs) {
+      resolved.set(`__dyn_${targetAbs}`, { targetAbsPath: targetAbs, exportedName: '*' });
     }
   }
 
@@ -645,6 +662,35 @@ function extractBackendRoutes(fileDataMap) {
         isAuthenticated,
         ...effects
       });
+    }
+
+      // Pattern D: Python FastAPI / Flask (`@app.get("/api/...")`, `@router.post("/api/...")`, `@app.route("/api/...")`)
+    if (file.ext === '.py') {
+      const pyRouteRe = /@(?:app|router|api|bp)\.(get|post|put|delete|patch|route)\s*\(\s*['"](\/api\/[^'"]+)['"]([^)]*)\)/g;
+      while ((m = pyRouteRe.exec(cleanCode)) !== null) {
+        let method = m[1].toUpperCase();
+        const rawRoute = m[2];
+        const extraArgs = m[3] || '';
+        if (method === 'ROUTE') {
+          const mm = extraArgs.match(/methods\s*=\s*\[['"]([A-Za-z]+)['"]/i);
+          method = mm ? mm[1].toUpperCase() : 'ANY';
+        }
+        const handlerSnippet = cleanCode.slice(m.index, Math.min(cleanCode.length, m.index + 650));
+        const isAuthenticated = /Depends\(|current_user|verify_token|login_required|authorization/i.test(handlerSnippet);
+        const effects = inspectEffects(handlerSnippet, []);
+        routes.push({
+          rawPath: rawRoute,
+          normPath: normalizeApiPath(rawRoute),
+          isPrefix: false,
+          method,
+          file: file.relPath,
+          line: indexToLine(lineOffsets, m.index),
+          isAuthenticated,
+          ...effects,
+          tracedHelpers: []
+        });
+      }
+      continue;
     }
 
     // Pattern C: Next.js App Router (`app/api/.../route.ts|js`)

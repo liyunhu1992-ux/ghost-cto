@@ -30,6 +30,10 @@ export function detectRuntimeTopology(workspace) {
     }
   } else if (fs.existsSync(path.join(workspace.rootDir, 'start-all.mjs'))) {
     startCmd = 'node start-all.mjs';
+  } else if (fs.existsSync(path.join(workspace.rootDir, 'main.py'))) {
+    startCmd = 'uvicorn main:app --reload';
+  } else if (fs.existsSync(path.join(workspace.rootDir, 'app.py'))) {
+    startCmd = 'python3 app.py';
   }
 
   // Scan top-level and server files for explicit `.listen(PORT` or port numbers

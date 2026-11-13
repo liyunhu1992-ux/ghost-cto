@@ -30,9 +30,20 @@ test('8-Platform Domestic/Overseas Sync + Atomic Code & SQLite+WAL Time Machine 
     fs.writeFileSync(dbPath, originalDbBytes);
     fs.writeFileSync(walPath, originalWalBytes);
 
+    // Pre-populate an existing user MCP server in `.cursor/mcp.json` to ensure `installGhostCTO` preserves it!
+    fs.mkdirSync(path.join(tmpRoot, '.cursor'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpRoot, '.cursor/mcp.json'),
+      JSON.stringify({ mcpServers: { 'existing-figma': { command: 'npx', args: ['figma-mcp'] } } }, null, 2)
+    );
+
     // 1. Run 8-platform domestic + overseas installation
     const installRes = installGhostCTO(tmpRoot);
     assert.ok(installRes.capsuleTokens < 350, `Capsule must be <350 tokens (got ${installRes.capsuleTokens})`);
+
+    const mergedCursorMcp = JSON.parse(fs.readFileSync(path.join(tmpRoot, '.cursor/mcp.json'), 'utf8'));
+    assert.ok(mergedCursorMcp.mcpServers['existing-figma'], 'Must preserve existing MCP servers in mcp.json');
+    assert.ok(mergedCursorMcp.mcpServers['ghost-cto'], 'Must inject ghost-cto MCP server into mcp.json');
 
     // Verify Domestic Chinese AI Tools (WorkBuddy, CodeBuddy, 豆包/Trae) + Global Tools
     const expectedFiles = [
@@ -49,7 +60,10 @@ test('8-Platform Domestic/Overseas Sync + Atomic Code & SQLite+WAL Time Machine 
       '.trae/skills/surgical-guard/SKILL.md',
       '.trae/mcp.json',
       '.vibe/豆包桌面版与WorkBuddy_MCP配置.json',
-      '.agents/plugins/ghost-cto/.agents-plugin/plugin.json',
+      '.agents/skills/reality-xray/SKILL.md',
+      '.agents/plugins/ghost-cto/plugin.json',
+      '.agents/plugins/ghost-cto/hooks.json',
+      '.agents/plugins/ghost-cto/mcp_config.json',
       '.cursor/rules/ghost-cto.mdc',
       '.windsurf/rules/ghost-cto.md',
       '老板全景驾驶舱.html',

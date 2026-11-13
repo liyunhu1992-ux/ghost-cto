@@ -46,6 +46,42 @@ export function computeBlastRadius(workspace, query, existingLineage = null) {
     }
   }
 
+  // Natural-Chinese Fuzzy Bigram Fallback:
+  // Beginners describe features in natural Chinese ("帮我改一下立即开通旗舰门店按钮") rather than exact verbatim source strings.
+  if (seedFiles.size === 0 && q.length >= 2) {
+    const stripped = q.replace(/(?:帮我|请|改一下|修改|优化|页面|按钮|功能|界面|模块|地方|里的|一下)/g, '').trim();
+    const grams = new Set();
+    const cjkRuns = stripped.match(/[\u4e00-\u9fff]{2,}/g) || [];
+    for (const run of cjkRuns) {
+      for (let i = 0; i < run.length - 1; i++) {
+        grams.add(run.slice(i, i + 2));
+      }
+    }
+    const asciiWords = stripped.match(/[a-z0-9_/-]{3,}/g) || [];
+    for (const w of asciiWords) grams.add(w);
+
+    if (grams.size > 0) {
+      const scored = [];
+      const gramArr = [...grams];
+      for (const [, modData] of lineage.fileDataMap.entries()) {
+        if (!modData.isReachable) continue;
+        const hay = (modData.file.relPath + '\n' + modData.lex.cleanCode).toLowerCase();
+        let hits = 0;
+        for (const g of gramArr) {
+          if (hay.includes(g)) hits++;
+        }
+        const ratio = hits / gramArr.length;
+        if ((hits >= 2 && ratio >= 0.34) || (gramArr.length === 1 && hits === 1)) {
+          scored.push({ rel: modData.file.relPath, hits, ratio });
+        }
+      }
+      scored.sort((a, b) => b.hits - a.hits || b.ratio - a.ratio);
+      for (const item of scored.slice(0, 4)) {
+        seedFiles.add(item.rel);
+      }
+    }
+  }
+
   // Collect 1-hop upstream/downstream neighbors
   const neighborFiles = new Set();
   for (const seed of seedFiles) {
@@ -72,14 +108,14 @@ export function computeBlastRadius(workspace, query, existingLineage = null) {
     }
   }
 
-  // Check if any seed/neighbor frontend file requires static `dist/` rebuild
+  // Check if any seed/neighbor frontend file requires static `dist/` or `build-ui.mjs` rebuild
   const requiredBuilds = [];
   for (const sb of workspace.staleBuilds) {
     const prefix = sb.appDir === '.' ? 'src/' : `${sb.appDir}/src/`;
     const touchesApp = [...seedFiles].some(f => f.startsWith(prefix));
     if (touchesApp) {
-      const cmd = sb.appDir === '.' ? 'npm run build' : `npm --prefix ${sb.appDir} run build`;
-      requiredBuilds.push(cmd);
+      const cmd = sb.buildCmd || (sb.appDir === '.' ? 'npm run build' : `npm --prefix ${sb.appDir} run build`);
+      if (!requiredBuilds.includes(cmd)) requiredBuilds.push(cmd);
     }
   }
 

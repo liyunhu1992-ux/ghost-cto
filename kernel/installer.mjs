@@ -25,11 +25,35 @@ function copyDirRecursive(srcDir, destDir) {
 }
 
 /**
+ * Safely merge `ghost-cto` into an existing `mcp.json` / `mcp_config.json`
+ * without wiping out any other MCP servers (e.g. figma, mobbin, supabase) the user already configured.
+ */
+function upsertMcpJsonFile(filePath, serverEntry) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  let base = {};
+  if (fs.existsSync(filePath)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        base = parsed;
+      }
+    } catch {
+      base = {};
+    }
+  }
+  if (!base.mcpServers || typeof base.mcpServers !== 'object' || Array.isArray(base.mcpServers)) {
+    base.mcpServers = {};
+  }
+  base.mcpServers['ghost-cto'] = serverEntry;
+  fs.writeFileSync(filePath, JSON.stringify(base, null, 2) + '\n', 'utf8');
+}
+
+/**
  * Install & synchronize GhostCTO across ALL 8 Domestic & Overseas AI Coding Tools:
  * - 腾讯 WorkBuddy (.workbuddy/)
  * - 腾讯 CodeBuddy (.codebuddy/)
  * - 字节 豆包编程 / Trae IDE (.trae/ + 豆包桌面版 MCP 配置)
- * - Google Antigravity (.agents/plugins/ghost-cto/ + AGENTS.md)
+ * - Google Antigravity (.agents/skills/ + .agents/plugins/ghost-cto/ + AGENTS.md)
  * - Cursor (.cursor/)
  * - Claude Code (CLAUDE.md + .claude/ + .mcp.json)
  * - Windsurf (.windsurf/)
@@ -50,7 +74,14 @@ export function installGhostCTO(targetRootDir, options = {}) {
   copyDirRecursive(pluginSrc, path.join(vendoredEngineDir, 'plugin'));
   fs.copyFileSync(path.join(GHOST_PACKAGE_ROOT, 'package.json'), path.join(vendoredEngineDir, 'package.json'));
 
-  // Create lightweight Stop-hook helper script
+  const vendoredBinAbs = path.join(vendoredEngineDir, 'bin', 'ghost-cto.mjs');
+  try {
+    fs.chmodSync(vendoredBinAbs, 0o755);
+  } catch {
+    // ignore
+  }
+
+  // Create Stop-hook helper script
   const hookScriptPath = path.join(absTarget, '.vibe', 'ghost-hook-check.mjs');
   fs.writeFileSync(
     hookScriptPath,
@@ -65,32 +96,11 @@ export function installGhostCTO(targetRootDir, options = {}) {
     'utf8'
   );
 
-  // Relative MCP command (portable across machines) & Absolute MCP command (for desktop chat apps like 豆包桌面版)
-  const portableMcpJson = JSON.stringify(
-    {
-      mcpServers: {
-        'ghost-cto': {
-          command: 'node',
-          args: ['.vibe/engine/bin/ghost-cto.mjs', 'mcp']
-        }
-      }
-    },
-    null,
-    2
-  );
-
-  const absoluteMcpJson = JSON.stringify(
-    {
-      mcpServers: {
-        'ghost-cto': {
-          command: 'node',
-          args: [path.join(vendoredEngineDir, 'bin', 'ghost-cto.mjs'), 'mcp', '--dir', absTarget]
-        }
-      }
-    },
-    null,
-    2
-  );
+  // Use cwd-independent absolute engine + target paths so IDEs spawning from $HOME or / never fail!
+  const ghostServerEntry = {
+    command: 'node',
+    args: [vendoredBinAbs, 'mcp', '--dir', absTarget]
+  };
 
   // 2. Universal / Codex / Antigravity Root `AGENTS.md` (100% byte-immutable for 90% KV Prefix Cache discount!)
   fs.writeFileSync(path.join(absTarget, 'AGENTS.md'), agentsRuleText, 'utf8');
@@ -103,7 +113,7 @@ export function installGhostCTO(targetRootDir, options = {}) {
     `---\ndescription: 影子CTO零代码创始人保护协议\nalwaysApply: true\nenabled: true\n---\n\n${agentsRuleText}`,
     'utf8'
   );
-  fs.writeFileSync(path.join(absTarget, '.workbuddy', 'mcp.json'), portableMcpJson + '\n', 'utf8');
+  upsertMcpJsonFile(path.join(absTarget, '.workbuddy', 'mcp.json'), ghostServerEntry);
 
   // 4. 腾讯 CodeBuddy (`.codebuddy/CODEBUDDY.md`, `.codebuddy/rules/ghost-cto.md`, `.codebuddy/skills/`, `.codebuddy/mcp.json`)
   fs.mkdirSync(path.join(absTarget, '.codebuddy', 'rules'), { recursive: true });
@@ -114,23 +124,20 @@ export function installGhostCTO(targetRootDir, options = {}) {
     'utf8'
   );
   copyDirRecursive(skillsSrcDir, path.join(absTarget, '.codebuddy', 'skills'));
-  fs.writeFileSync(path.join(absTarget, '.codebuddy', 'mcp.json'), portableMcpJson + '\n', 'utf8');
+  upsertMcpJsonFile(path.join(absTarget, '.codebuddy', 'mcp.json'), ghostServerEntry);
 
   // 5. 字节跳动 豆包编程助手 / Trae IDE (`.trae/rules/project_rules.md`, `.trae/skills/`, `.trae/mcp.json` + 豆包桌面版配置)
   fs.mkdirSync(path.join(absTarget, '.trae', 'rules'), { recursive: true });
   fs.writeFileSync(path.join(absTarget, '.trae', 'rules', 'project_rules.md'), agentsRuleText, 'utf8');
   copyDirRecursive(skillsSrcDir, path.join(absTarget, '.trae', 'skills'));
-  fs.writeFileSync(path.join(absTarget, '.trae', 'mcp.json'), portableMcpJson + '\n', 'utf8');
-  fs.writeFileSync(
-    path.join(absTarget, '.vibe', '豆包桌面版与WorkBuddy_MCP配置.json'),
-    absoluteMcpJson + '\n',
-    'utf8'
-  );
+  upsertMcpJsonFile(path.join(absTarget, '.trae', 'mcp.json'), ghostServerEntry);
+  upsertMcpJsonFile(path.join(absTarget, '.vibe', '豆包桌面版与WorkBuddy_MCP配置.json'), ghostServerEntry);
 
-  // 6. Google Antigravity Native Workspace Plugin (`.agents/plugins/ghost-cto/`)
+  // 6. Google Antigravity Native Workspace Skills + Plugin (`.agents/skills/` + `.agents/plugins/ghost-cto/`)
+  copyDirRecursive(skillsSrcDir, path.join(absTarget, '.agents', 'skills'));
   const agyPluginDest = path.join(absTarget, '.agents', 'plugins', 'ghost-cto');
   copyDirRecursive(pluginSrc, agyPluginDest);
-  fs.writeFileSync(path.join(agyPluginDest, '.mcp.json'), portableMcpJson + '\n', 'utf8');
+  upsertMcpJsonFile(path.join(agyPluginDest, 'mcp_config.json'), ghostServerEntry);
 
   // 7. Cursor (`.cursor/rules/ghost-cto.mdc` + `.cursor/mcp.json`)
   fs.mkdirSync(path.join(absTarget, '.cursor', 'rules'), { recursive: true });
@@ -139,7 +146,7 @@ export function installGhostCTO(targetRootDir, options = {}) {
     `---\ndescription: GhostCTO Founder Reality & Blast-Radius Guard\nglobs: "*"\nalwaysApply: true\n---\n\n${agentsRuleText}`,
     'utf8'
   );
-  fs.writeFileSync(path.join(absTarget, '.cursor', 'mcp.json'), portableMcpJson + '\n', 'utf8');
+  upsertMcpJsonFile(path.join(absTarget, '.cursor', 'mcp.json'), ghostServerEntry);
 
   // 8. Claude Code (`CLAUDE.md` pointer + `.claude/skills/` + `.mcp.json`)
   const claudeMdPath = path.join(absTarget, 'CLAUDE.md');
@@ -147,7 +154,7 @@ export function installGhostCTO(targetRootDir, options = {}) {
     fs.writeFileSync(claudeMdPath, `@AGENTS.md\n`, 'utf8');
   }
   copyDirRecursive(skillsSrcDir, path.join(absTarget, '.claude', 'skills'));
-  fs.writeFileSync(path.join(absTarget, '.mcp.json'), portableMcpJson + '\n', 'utf8');
+  upsertMcpJsonFile(path.join(absTarget, '.mcp.json'), ghostServerEntry);
 
   // 9. Windsurf (`.windsurf/rules/ghost-cto.md`)
   fs.mkdirSync(path.join(absTarget, '.windsurf', 'rules'), { recursive: true });
@@ -187,7 +194,7 @@ export function installGhostCTO(targetRootDir, options = {}) {
       '腾讯 WorkBuddy (.workbuddy/)',
       '腾讯 CodeBuddy (.codebuddy/)',
       '字节 豆包编程 / Trae (.trae/ + 豆包MCP)',
-      'Google Antigravity (.agents/plugins/ghost-cto/)',
+      'Google Antigravity (.agents/skills/ + .agents/plugins/ghost-cto/)',
       'Cursor (.cursor/)',
       'Claude Code (CLAUDE.md + .claude/)',
       'Windsurf (.windsurf/)',

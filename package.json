@@ -1,6 +1,6 @@
 {
   "name": "ghost-cto",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "GhostCTO (影子 CTO) — Zero-Token Deterministic Product Reality Engine, 3D Full-Stack Lineage Mapper & Auto-Routing Harness for Non-Technical Vibe Coders",
   "type": "module",
   "bin": {
@@ -11,12 +11,18 @@
     "kernel/",
     "plugin/",
     "docs/",
+    "install.sh",
+    "install.ps1",
     "README.md",
     "README.en.md",
+    "INSTALL.md",
+    "SECURITY.md",
+    "CONTRIBUTING.md",
     "LICENSE"
   ],
   "scripts": {
     "test": "node --test tests/*.test.mjs",
+    "try": "node bin/ghost-cto.mjs try",
     "budget": "node bin/ghost-cto.mjs budget"
   },
   "keywords": [
