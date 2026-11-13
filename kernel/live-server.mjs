@@ -8,6 +8,9 @@ import { computeBlastRadius } from './blast-radius.mjs';
 import { saveCheckpoint, rewindCheckpoint } from './time-capsule.mjs';
 import { writeMemoryCapsule, detectRuntimeTopology } from './memory-capsule.mjs';
 import { generateBossDashboard } from './boss-dashboard.mjs';
+import { saveIdeaBlueprint } from './idea-incubator.mjs';
+import { bootstrapGoldenApp } from './golden-scaffold.mjs';
+import { verifyWorkspaceCode } from './code-verifier.mjs';
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -149,6 +152,29 @@ export function createCockpitHttpHandler(targetRootDir) {
           buildCommands: impact.buildCommands,
           founderMarkdown: impact.founderMarkdown
         });
+      }
+
+      if (pathname === '/__ghost_api/incubate' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const bp = saveIdeaBlueprint(absRoot, body.idea || '', {
+          audience: body.audience || 'self',
+          device: body.device || 'both'
+        });
+        return sendJson(res, 200, { ok: true, blueprint: bp });
+      }
+
+      if (pathname === '/__ghost_api/bootstrap' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const out = bootstrapGoldenApp(absRoot, body.idea || '', {
+          audience: body.audience || 'self',
+          device: body.device || 'both'
+        });
+        return sendJson(res, 200, { ok: true, ...out });
+      }
+
+      if (pathname === '/__ghost_api/verify' && req.method === 'POST') {
+        const ver = verifyWorkspaceCode(absRoot);
+        return sendJson(res, 200, { ok: true, verification: ver });
       }
 
       return sendJson(res, 404, { ok: false, error: 'Not found' });

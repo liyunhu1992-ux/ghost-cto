@@ -90,17 +90,27 @@ export function generateBossDashboard(workspace, audit) {
 
   const findingsHtml = isZeroCodeStarter
     ? `<div class="finding-card" style="border-left: 5px solid #059669; background: #F0FDF4;">
-        <h3 class="finding-title" style="font-size: 18px; color: #065F46;">🌱 欢迎开启你的 Vibe Coding 之旅！（当前文件夹还是空白画布）</h3>
-        <p class="finding-desc" style="color: #064E3B;">完全不懂代码也没关系！GhostCTO 已经帮你把防崩护栏、数据库真落库铁律和后悔药时光机全部装好了。现在只需<strong>用中文大白话写下你想做的东西</strong>，点下方绿色按钮复制第一句指令，粘贴进豆包 / Trae / 腾讯 WorkBuddy / Cursor 就能稳稳开工：</p>
+        <h3 class="finding-title" style="font-size: 18px; color: #065F46;">🌱 零碎想法孵化器：哪怕只有几个字的模糊念头，也能带你零出错做出来！</h3>
+        <p class="finding-desc" style="color: #064E3B;">说不清楚需求完全没关系！随便输入几个字（比如“管美甲会员次数”、“记账”、“背单词”、“小红书选题”），选一下给谁用，GhostCTO 会自动帮你拆清功能、设计好真实数据库，还能<strong>一键铺好 97 分零出错可运行底座</strong>（免配环境、防白屏、自带报错秒修条）：</p>
         <div class="filter-row" style="margin-bottom: 8px;">
-          <button type="button" class="filter-pill" onclick="fillStarterIdea('我想做一个清爽好用的门店预约与记账小工具，手机和电脑网页都能打开，数据重启不能丢')">💡 灵感1：预约记账小工具</button>
-          <button type="button" class="filter-pill" onclick="fillStarterIdea('我想做一个背单词与每日打卡学习网页，能添加自己的词库并统计连续打卡天数')">💡 灵感2：打卡学习小网站</button>
-          <button type="button" class="filter-pill" onclick="fillStarterIdea('我想做一个个人作品集与客户留言收集网站，界面干净高级，后台能查看导出留言')">💡 灵感3：个人主页与表单</button>
+          <button type="button" class="filter-pill" onclick="fillStarterIdea('管美甲店客户预约与次卡')">💡 示例1：管客户次卡</button>
+          <button type="button" class="filter-pill" onclick="fillStarterIdea('门店日常收支与库存记账')">💡 示例2：记账管库存</button>
+          <button type="button" class="filter-pill" onclick="fillStarterIdea('背单词与每日习惯打卡')">💡 示例3：学习打卡</button>
+          <button type="button" class="filter-pill" onclick="fillStarterIdea('小红书爆款选题与文案库')">💡 示例4：选题灵感库</button>
         </div>
-        <input id="starter-idea-input" class="topic-input" style="background:#FFF; border-color:#86EFAC;" type="text" placeholder="✍️ 在这里用大白话写下你想做的软件、网页或小工具..." />
-        <div style="margin-top: 12px;">
-          <button type="button" class="live-action-btn" style="padding: 10px 18px; font-size: 14px;" onclick="copyZeroToOneKickoff()">🚀 一键生成并复制「小白第一句 Vibe Coding 开局神令」</button>
+        <input id="starter-idea-input" class="topic-input" style="background:#FFF; border-color:#86EFAC;" type="text" placeholder="✍️ 随便写几个字你的零碎想法（越口语越简单越好）..." />
+        <div class="filter-row" style="margin-top: 10px; align-items: center;">
+          <span style="font-size:13px; font-weight:700; color:#065F46;">👥 这个小工具谁来用：</span>
+          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="starter-audience" value="self" checked /> 就我自己用（免登录最省心）</label>
+          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="starter-audience" value="team" /> 团队/店员一起用</label>
+          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="starter-audience" value="public" /> 给客户看/填表</label>
         </div>
+        <div style="margin-top: 14px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="button" class="live-only-btn" style="display:none; background:#2563EB; padding: 10px 16px; font-size: 13.5px;" onclick="livePreviewIncubate()">🪄 第1步：帮我把模糊想法拆清楚 (0 Token)</button>
+          <button type="button" class="live-only-btn" style="display:none; background:#059669; padding: 10px 18px; font-size: 13.5px;" onclick="liveBootstrapGoldenApp()">🚀 第2步：一键生成「97分零出错真项目底座」（免写代码直接能跑！）</button>
+          <button type="button" class="copy-btn" style="padding: 10px 16px; font-size: 13.5px;" onclick="copyZeroToOneKickoff()">📋 复制「模糊想法引导开局指令」发给 AI</button>
+        </div>
+        <div id="incubate-preview-box" class="impact-result" style="border-color:#86EFAC; background:#FFFFFF;"></div>
       </div>`
     : audit.findings.length === 0
       ? `<div class="empty-ok">🎉 太稳了！当前没有检测到假数据、空吞报错、裸奔管理接口或断头按钮，可以放心体验和交付。</div>`
@@ -401,6 +411,7 @@ export function generateBossDashboard(workspace, audit) {
     <div class="mode-bar">
       <span id="live-status-text" class="mode-badge-offline">📄 当前为离线快照模式（双击项目内的「打开实时驾驶舱」即可开启 0-Token 网页一键重测 / 秒备份 / 秒回退）</span>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="btn-live-verify" class="live-only-btn" style="display:none; background:#2563EB;" onclick="liveVerifyCode()">✅ 0-Token 语法与零出错全检</button>
         <button id="btn-live-audit" class="live-action-btn" style="display:none;" onclick="liveRunAudit()">🔄 0-Token 立即重新体检刷新分数</button>
         <button class="copy-btn ghost-btn" data-copy="${escHtml(shareCertificateText)}">🏅 复制项目体检战报（发团队/晒进展）</button>
       </div>
@@ -574,17 +585,87 @@ export function generateBossDashboard(workspace, audit) {
       const inp = document.getElementById('starter-idea-input');
       if (inp) inp.value = val;
     }
+    function getSelectedAudience() {
+      const checked = document.querySelector('input[name="starter-audience"]:checked');
+      return checked ? checked.value : 'self';
+    }
     function copyZeroToOneKickoff() {
       const inp = document.getElementById('starter-idea-input');
       const idea = inp && inp.value && inp.value.trim() ? inp.value.trim() : '做一个简洁实用的全栈网页小工具，支持真实保存数据';
+      const aud = getSelectedAudience();
       const prompt = [
-        '我是完全零代码基础的 Vibe Coding 创作者，我想从 0 到 1 做这个作品：「' + idea + '」。',
-        '请你作为我的影子 CTO 严格遵守以下规则：',
-        '1. 技术选型全由你按最稳、最轻量的本地全栈方案拍板（默认 Node.js + SQLite 真实落库，严禁只存内存假数组，严禁反问我任何英文技术名词）。',
-        '2. 先管住手别急着写代码：用大白话每次只问我 1 个最关键的功能选择题（最多问 3 个问题），等我说“开工”后再动手。',
-        '3. 界面审美要干净高级（米白底、清晰排版，拒绝廉价紫蓝渐变与假数字），做好后自动跑通 ghost-cto audit 真假体检并让我双击《双击启动项目》就能直接打开网页体验！'
+        '我是零基础的 Vibe Coding 新手，我脑子里目前只有这个零碎想法：「' + idea + '」（使用场景：' + aud + '）。',
+        '请你先调用 ghost_incubate_idea（如果当前是空文件夹请传 bootstrap=true 一键铺好零出错底座！）生成 .vibe/blueprint.md，并严格按以下方式带我做出来：',
+        '1. 我说不清楚细节，请你替我把技术选型全拍板好（Node.js + SQLite 真实落库），如果需要确认业务细节，每次只问我 1 个最简单的大白话选择题（最多 3 问）。',
+        '2. 必须在零出错防崩底座上一步步演进，严禁写内存假数组，严禁乱引容易报错的外部复杂包。',
+        '3. 每次写完代码后，你必须自己调用 ghost_verify_code 检查所有 JS 和 HTML 脚本语法 0 报错，再让我双击《双击启动项目》看效果！'
       ].join('\\n');
       copySafe(prompt);
+    }
+    function livePreviewIncubate() {
+      const inp = document.getElementById('starter-idea-input');
+      const out = document.getElementById('incubate-preview-box');
+      const idea = inp && inp.value ? inp.value.trim() : '';
+      if (!out) return;
+      fetch('/__ghost_api/incubate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea, audience: getSelectedAudience() })
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (!d.ok) return;
+          const bp = d.blueprint;
+          out.style.display = 'block';
+          out.textContent = [
+            '🎯 已自动为你理清产品蓝图（并已保存至 .vibe/blueprint.md）：',
+            '• 推荐作品名：' + bp.appName + ' （' + bp.archetypeLabel + '）',
+            '• 第一版自动配齐的 4 个核心功能：',
+            '  1) ' + bp.coreFeatures[0],
+            '  2) ' + bp.coreFeatures[1],
+            '  3) ' + bp.coreFeatures[2],
+            '  4) ' + bp.coreFeatures[3],
+            '• 自动设计的真实 SQLite 数据表：' + bp.tableName + '（含：' + bp.labels.titleLabel + ' / ' + bp.labels.subLabel + ' / ' + bp.labels.amountLabel + '）',
+            '• 防翻车保护：已自动砍掉第一版容易报错的支付/短信/重型依赖！',
+            '👉 现在直接点上方绿色按钮【🚀 第2步：一键生成 97分零出错真项目底座】，1 秒就能生成真能跑的软件！'
+          ].join('\\n');
+        });
+    }
+    function liveBootstrapGoldenApp() {
+      const inp = document.getElementById('starter-idea-input');
+      const idea = inp && inp.value ? inp.value.trim() : '';
+      showToastMsg('⏳ 正在根据你的零碎想法铺设 97 分零出错真数据库项目底座...');
+      fetch('/__ghost_api/bootstrap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea, audience: getSelectedAudience() })
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (d.ok) {
+            showToastMsg(d.message || '🎉 零出错底座已生成！');
+            setTimeout(() => window.location.reload(), 900);
+          }
+        });
+    }
+    function liveVerifyCode() {
+      showToastMsg('⏳ 正在本地 0-Token 检查全部 JS / HTML / JSON 语法与真假契约...');
+      fetch('/__ghost_api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{}'
+      })
+        .then(r => r.json())
+        .then(d => {
+          if (!d.ok || !d.verification) return;
+          const v = d.verification;
+          if (v.ok) {
+            showToastMsg('🎉 零出错门禁全绿通过！共检查 ' + v.filesChecked + ' 个代码文件，0 语法错误、0 致命假功能！');
+          } else {
+            copySafe(v.aiFixPrompt);
+            showToastMsg('⚠️ 抓到 ' + (v.syntaxErrors.length + v.p0Findings.length) + ' 个错误！已自动复制精准修复指令，快去粘贴给 AI 秒修！');
+          }
+        });
     }
     function copySafe(text) {
       const okMsg = '✅ 已复制指令！直接去 WorkBuddy / 豆包 / Antigravity 粘贴发送即可';

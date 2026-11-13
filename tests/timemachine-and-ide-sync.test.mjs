@@ -95,7 +95,7 @@ test('8-Platform Domestic/Overseas Sync + Atomic Code & SQLite+WAL Time Machine 
     assert.equal(initResp.result.serverInfo.name, 'ghost-cto');
 
     const toolsResp = handleMcpRequest({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, tmpRoot);
-    assert.equal(toolsResp.result.tools.length, 7);
+    assert.equal(toolsResp.result.tools.length, 9);
 
     const auditCall = handleMcpRequest(
       {

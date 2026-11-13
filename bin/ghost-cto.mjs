@@ -15,6 +15,9 @@ import { startMcpStdioServer } from '../kernel/mcp-server.mjs';
 import { startLiveCockpitServer } from '../kernel/live-server.mjs';
 import { runDoctor, runSelfTrial } from '../kernel/doctor.mjs';
 import { analyzeSource, estimateTokens } from '../kernel/lexer.mjs';
+import { saveIdeaBlueprint } from '../kernel/idea-incubator.mjs';
+import { bootstrapGoldenApp } from '../kernel/golden-scaffold.mjs';
+import { verifyWorkspaceCode } from '../kernel/code-verifier.mjs';
 
 function parseArgs(argv) {
   const positional = [];
@@ -255,6 +258,44 @@ async function main() {
         fileHint: flags.file || ''
       });
       console.log(`🧬 已写入项目永久免疫铁律 [${scar.id}]: ${scar.rule}`);
+      break;
+    }
+
+    case 'incubate': {
+      const idea = positional[1] || '';
+      const targetDir = resolveTargetDir(2);
+      const bp = saveIdeaBlueprint(targetDir, idea, { audience: flags.audience || 'self' });
+      console.log(bp.blueprintMarkdown);
+      console.log(`\n✅ 清晰产品施工蓝图已写入: ${bp.mdPath}`);
+      break;
+    }
+
+    case 'bootstrap': {
+      const idea = positional[1] || '';
+      const targetDir = resolveTargetDir(2);
+      const out = bootstrapGoldenApp(targetDir, idea, { audience: flags.audience || 'self' });
+      console.log(`\n${out.message}`);
+      console.log(`📄 产品施工蓝图: ${out.blueprint.mdPath}`);
+      if (out.scaffolded) {
+        console.log(`📦 初始防崩存档: ${out.checkpointId}`);
+        console.log(`🚀 现在直接双击项目里的「双击启动项目.command / .bat」就能立刻体验真落库应用！\n`);
+      }
+      break;
+    }
+
+    case 'verify': {
+      const targetDir = resolveTargetDir(1);
+      const ver = verifyWorkspaceCode(targetDir);
+      if (flags.ai) {
+        console.log(ver.aiCompact);
+      } else if (ver.ok) {
+        console.log(`✅ 零出错编译与真假门禁全绿通过！(已检查 ${ver.filesChecked} 个源码文件，0 语法错误，商用健康分 ${ver.score}/100)`);
+      } else {
+        console.error(`\n🛑 零出错门禁抓到 ${ver.syntaxErrors.length} 处代码语法错误、${ver.p0Findings.length} 处致命断头/假功能：`);
+        for (const line of ver.errorLines) console.error(`  ${line}`);
+        console.error(`\n👉 直接把上面提示粘贴给 AI 即可精准秒修！\n`);
+      }
+      if (!ver.ok) process.exitCode = 1;
       break;
     }
 

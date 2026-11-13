@@ -148,6 +148,9 @@ npx ghost-cto init /path/to/your-project
 | 命令 / MCP 工具 | 作用（0 Token 本地确定性执行） |
 | :--- | :--- |
 | `ghost-cto try` | 在本机沙箱自动跑完 1 秒全链路真机演练（测试 8 平台安装、MCP 跨进程通信、抓假功能与数据库回退） |
+| `ghost-cto bootstrap "零碎想法" [目录]` | **零基础从 0 到 1 神器**：哪怕只有几个字的模糊念头，自动拆清蓝图并一键铺好 **97 分零出错 SQLite 全栈可运行底座**（自带防白屏与报错秒修条） |
+| `ghost-cto incubate "零碎想法" [目录]` / `ghost_incubate_idea` | **零碎想法孵化器**：把说不清的碎片想法自动变成清晰 4 大功能、真实数据表结构与防翻车清单（`.vibe/blueprint.md`） |
+| `ghost-cto verify [目录]` / `ghost_verify_code` | **代码零出错编译门禁**：0-Token 检查全部 JS 语法、HTML `<script>` 脚本语法、JSON 格式与前后端真假接口，有错不准 AI 交差 |
 | `ghost-cto init [目录]` | 一键同步 8 大国内外软件规则/Skills/MCP（增量合并绝不覆盖原有工具）+ 创建初始存档 + 生成驾驶舱 |
 | `ghost-cto studio [目录]` | 启动 **0-Token 实时交互版老板驾驶舱**（支持浏览器直接点重新体检、双轨备份、秒回退与中文按钮影响反查） |
 | `ghost-cto doctor [目录]` | 22 项真机体检：核验各软件配置文件、Token 预算，并从外部目录拉起真实子进程测试双协议 MCP 通信 |

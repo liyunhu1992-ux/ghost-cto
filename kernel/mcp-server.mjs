@@ -7,6 +7,9 @@ import { saveCheckpoint, rewindCheckpoint, listCheckpoints } from './time-capsul
 import { writeMemoryCapsule, learnScar } from './memory-capsule.mjs';
 import { generateBossDashboard } from './boss-dashboard.mjs';
 import { buildMasterPromptArsenal, getMasterPromptById } from './prompt-arsenal.mjs';
+import { saveIdeaBlueprint } from './idea-incubator.mjs';
+import { bootstrapGoldenApp } from './golden-scaffold.mjs';
+import { verifyWorkspaceCode } from './code-verifier.mjs';
 
 const MCP_TOOLS = [
   {
@@ -93,6 +96,32 @@ const MCP_TOOLS = [
             '可选场景编号: khazix-socratic-mvp | karpathy-surgical-code | anti-ai-slop-ui | deadloop-bug-breaker | khazix-expert-council | mvp-negative-blueprint | khazix-neat-freak | khazix-human-copy | all'
         },
         topic: { type: 'string', description: '老板想做的具体事项（一句大白话）' },
+        projectDir: { type: 'string', description: '项目根目录路径（默认当前工作区）' }
+      }
+    }
+  },
+  {
+    name: 'ghost_incubate_idea',
+    description:
+      '【零碎想法孵化器 & 零出错底座生成】当小白只有一个模糊、零碎的想法、说不清楚需求时必调！自动拆出清晰核心功能、真实SQLite表结构与防翻车负面清单写入 .vibe/blueprint.md；若当前是空文件夹且传 bootstrap=true，自动铺设97分零出错全栈防崩底座。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        idea: { type: 'string', description: '小白口述的零碎模糊想法（哪怕只有几个字）' },
+        audience: { type: 'string', description: '使用人群: self(自己用) | team(团队内部) | public(给客户看)' },
+        bootstrap: { type: 'boolean', description: '若当前为空文件夹，是否直接一键生成零出错可运行底座' },
+        projectDir: { type: 'string', description: '项目根目录路径（默认当前工作区）' }
+      },
+      required: ['idea']
+    }
+  },
+  {
+    name: 'ghost_verify_code',
+    description:
+      '【AI交差前必跑·零出错编译与真假门禁】修改或新建任何代码后必须调用！0-Token本地检查全部JS语法、HTML内嵌<script>语法、JSON格式与前后端接口契约，返回PASS才准向用户交差！',
+    inputSchema: {
+      type: 'object',
+      properties: {
         projectDir: { type: 'string', description: '项目根目录路径（默认当前工作区）' }
       }
     }
@@ -222,6 +251,18 @@ function executeToolCall(toolName, args, rootDir) {
       }
       const item = getMasterPromptById(ws, audit, scenario, args.topic || '');
       return item.prompt;
+    }
+    case 'ghost_incubate_idea': {
+      if (args.bootstrap) {
+        const res = bootstrapGoldenApp(rootDir, args.idea || '', { audience: args.audience || 'self' });
+        return `GHOST_BOOTSTRAPPED|scaffolded:${res.scaffolded}|app:${res.blueprint.appName}|table:${res.blueprint.tableName}|score:${res.score || 'N/A'}|blueprint:.vibe/blueprint.md`;
+      }
+      const bp = saveIdeaBlueprint(rootDir, args.idea || '', { audience: args.audience || 'self' });
+      return bp.blueprintMarkdown;
+    }
+    case 'ghost_verify_code': {
+      const ver = verifyWorkspaceCode(rootDir);
+      return ver.aiCompact;
     }
     default:
       throw new Error(`Unknown GhostCTO tool: ${toolName}`);

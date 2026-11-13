@@ -167,15 +167,15 @@ export async function runDoctor(targetRootDir) {
     const elapsed = Date.now() - startMs;
 
     const mcpOk =
-      nlRes.tools?.result?.tools?.length === 7 &&
+      nlRes.tools?.result?.tools?.length === 9 &&
       nlRes.auditCall?.result?.isError === false &&
-      clRes.tools?.result?.tools?.length === 7 &&
+      clRes.tools?.result?.tools?.length === 9 &&
       clRes.auditCall?.result?.isError === false;
 
     checks.push({
       name: '真实子进程 MCP 双协议通信自检 (从外部目录拉起)',
       ok: mcpOk,
-      detail: `7 工具全通，往返耗时 ${elapsed}ms`
+      detail: `9 工具全通，往返耗时 ${elapsed}ms`
     });
   } else {
     checks.push({ name: '真实子进程 MCP 通信自检', ok: false, detail: '未找到 mcp.json' });
