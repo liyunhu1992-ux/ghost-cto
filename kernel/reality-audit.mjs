@@ -223,7 +223,9 @@ export function runRealityAudit(workspace, existingLineage = null) {
           fnObj.cleanBody
         );
         const hasNetworkOrPropAction =
-          /\b(?:fetch|api[A-Za-z]*|axios|request|sendBeacon|localStorage\.setItem|on[A-Z][A-Za-z]+)\s*\(/.test(fnObj.cleanBody);
+          /(?:\b(?:fetch|axios|request|sendBeacon|localStorage\.setItem|on[A-Z][A-Za-z]+)|[A-Za-z0-9_$]*(?:Fetch|Api|Post|Put|Patch|Delete|Request|Client)|api[A-Za-z0-9_$]*)\s*\(|['"`]\/api\//.test(
+            fnObj.cleanBody
+          );
         if (claimsSaved && !hasNetworkOrPropAction) {
           findings.push({
             id: 'FAKE_CLIENT_ONLY_SAVE',

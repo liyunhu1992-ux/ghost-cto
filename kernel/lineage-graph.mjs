@@ -558,11 +558,26 @@ function extractBackendRoutes(fileDataMap) {
 
     const { cleanCode, skeleton, lineOffsets } = lex;
 
-    // Detect if this file has a global sequential auth barrier (e.g. `if (!ctx) return sendJson(..., 401)`)
-    let authBarrierIndex = -1;
-    const authGateMatch = cleanCode.match(/if\s*\(\s*!(?:ctx|session|user|auth|token)\b[^)]*\)\s*return\s+[^;]*?(?:401|403|Unauthorized|未登录|登录已失效)/i);
-    if (authGateMatch) {
-      authBarrierIndex = authGateMatch.index;
+    // Detect all sequential or block-scoped auth barriers (`if (!ctx) return ...401`, `if (!adminCtx) return ...401`)
+    const authBarriers = [];
+    const authGateRe = /if\s*\(\s*![A-Za-z0-9_$]*(?:ctx|session|user|auth|token|admin)[A-Za-z0-9_$]*\b[^)]*\)\s*return\s+[^;]*?(?:401|403|Unauthorized|未登录|登录已失效|口令|鉴权)/gi;
+    let ag;
+    while ((ag = authGateRe.exec(cleanCode)) !== null) {
+      // Find enclosing `{ ... }` block around this auth gate so we know its exact protection range!
+      let openB = -1;
+      let d = 0;
+      for (let k = ag.index; k >= 0; k--) {
+        if (skeleton[k] === '}') d++;
+        else if (skeleton[k] === '{') {
+          if (d === 0) {
+            openB = k;
+            break;
+          }
+          d--;
+        }
+      }
+      const closeB = openB !== -1 ? findMatchingBrace(skeleton, openB) : cleanCode.length;
+      authBarriers.push({ gateIndex: ag.index, scopeEnd: closeB > openB ? closeB : cleanCode.length });
     }
 
     // Pattern A: Raw `node:http` conditional routing (`if (pathname === '/api/...' && ...)`)
@@ -614,8 +629,13 @@ function extractBackendRoutes(fileDataMap) {
         }
       }
 
-      const localHasAuth = /\b(?:ctx|getAuthCtx|requireAuth|verifyToken|checkAdmin|session)\b/.test(handlerSnippet);
-      const protectedByBarrier = authBarrierIndex !== -1 && m.index > authBarrierIndex;
+      // Skip pure router-group prefix wrappers (`if (pathname.startsWith('/api/admin/')) { if (pathname === ...) }`)
+      if (isPrefix && /(?:pathname|urlPath|req\.url)\s*===\s*['"`]\/api\//.test(handlerSnippet)) {
+        continue;
+      }
+
+      const localHasAuth = /\b(?:ctx|adminCtx|getAuthCtx|getAdminCtx|requireAuth|verifyToken|checkAdmin|session)\b/.test(handlerSnippet);
+      const protectedByBarrier = authBarriers.some(b => m.index > b.gateIndex && m.index < b.scopeEnd);
       const isAuthenticated = localHasAuth || protectedByBarrier;
 
       const effects = traceTransitiveEffects(handlerSnippet, absPath, fileDataMap);
