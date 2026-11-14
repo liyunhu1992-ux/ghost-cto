@@ -212,17 +212,17 @@ test('Interactive DOM, 5-Tab Switching & Live Master Prompt Injection in 老板�
     const res = installGhostCTO(tmpRoot);
     verifyDashboardHtmlInteractivity(res.dashboardPath);
 
-    // P0 project must surface urgent fix action right in the primary card
+    // P0 project must surface urgent fix action right in verdict banner and #panel-risks
     const brokenHtml = fs.readFileSync(res.dashboardPath, 'utf8');
-    const brokenPrimary = brokenHtml.match(/<section class="primary-card">[\s\S]*?<\/section>/)?.[0] || '';
-    assert.ok(brokenPrimary.includes('点右边按钮复制话术，发给 AI 就能修好'));
-    assert.ok(brokenPrimary.includes('复制这句话发给 AI'));
+    const brokenVerdict = brokenHtml.match(/<div class="verdict-banner">[\s\S]*?<\/div>/)?.[0] || '';
+    assert.ok(brokenVerdict.includes('一键复制全部修复话术'));
+    assert.ok(brokenHtml.includes('复制这句话发给 AI 修好'));
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 });
 
-test('Beginner Clarity Gate: Healthy project with only P2 developer notes shows calm zero-action card without black fix buttons', () => {
+test('Beginner Clarity Gate: Healthy project keeps full cockpit KPIs & score while folding P2 notes without black fix buttons', () => {
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-calm-ui-'));
   try {
     fs.mkdirSync(path.join(tmpRoot, 'src'), { recursive: true });
@@ -233,12 +233,14 @@ test('Beginner Clarity Gate: Healthy project with only P2 developer notes shows 
 
     const res = installGhostCTO(tmpRoot);
     const html = fs.readFileSync(res.dashboardPath, 'utf8');
-    const primaryCard = html.match(/<section class="primary-card">[\s\S]*?<\/section>/)?.[0] || '';
+    const verdictBanner = html.match(/<div class="verdict-banner">[\s\S]*?<\/div>/)?.[0] || '';
 
-    assert.ok(primaryCard.includes('一切正常，现在什么都不用点'), 'Healthy project must tell beginner nothing needs clicking');
-    assert.equal(primaryCard.includes('copy-btn'), false, 'Healthy primary card must NOT show any copy-fix prompt button');
-    assert.equal(primaryCard.includes('src/large.mjs'), false, 'P2 file coordinates must NOT clutter primary card');
-    assert.ok(html.includes('<details class="more-drawer">'), 'Advanced details must be tucked inside collapsed drawer');
+    assert.ok(html.includes('项目健康总分（满分 100）'), 'Must preserve full visual health score box');
+    assert.ok(html.includes('class="kpi-grid"'), 'Must preserve 4 visual KPI cards');
+    assert.ok(verdictBanner.includes('不用给 AI 发任何修复话术'), 'Healthy verdict must tell beginner nothing needs sending');
+    assert.equal(verdictBanner.includes('copy-btn'), false, 'Healthy verdict banner must NOT show black fix button');
+    assert.ok(html.includes('你现在什么都不用点'), 'Tab 1 must reassure beginner immediately');
+    assert.ok(html.includes('<details class="p2-drawer">'), 'P2 file-size notes must be folded inside optional p2-drawer');
     verifyDashboardHtmlInteractivity(res.dashboardPath);
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
