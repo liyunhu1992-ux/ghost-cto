@@ -82,11 +82,16 @@ export function buildDashboardCss(scoreBg, scoreColor) {
     .undo-title { font-size: 16px; font-weight: 600; color: var(--text); }
     .undo-sub { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
     .undo-row {
-      padding: 12px 0; border-top: 1px solid var(--hairline);
-      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 11px 0; border-top: 1px solid var(--hairline);
+      display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: nowrap;
     }
-    .undo-name { font-size: 14px; font-weight: 500; color: var(--text); }
-    .undo-time { font-size: 12.5px; color: var(--muted); margin-left: 8px; font-variant-numeric: tabular-nums; }
+    .undo-info { flex: 1; min-width: 0; }
+    .undo-name {
+      display: block; font-size: 14px; font-weight: 500; color: var(--text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .undo-time { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; font-variant-numeric: tabular-nums; }
+    .undo-actions { flex-shrink: 0; }
     .copy-btn, .live-action-btn, .live-only-btn {
       display: inline-flex; align-items: center; justify-content: center;
       background: var(--primary); color: #FFF; border: 1px solid var(--primary); border-radius: 8px;

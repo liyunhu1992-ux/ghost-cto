@@ -20,6 +20,10 @@ function escHtml(str) {
 function friendlyCpLabel(label) {
   const raw = String(label || '').trim();
   if (!raw || raw === 'Initial GhostCTO baseline snapshot') return '接入保护时的初始备份';
+  if (/^(feat|fix|chore|refactor|style|docs|perf|test)(\([^)]*\))?:/i.test(raw)) {
+    const cleaned = raw.replace(/^(feat|fix|chore|refactor|style|docs|perf|test)(\([^)]*\))?:\s*/i, '');
+    return /[\u4e00-\u9fa5]/.test(cleaned) ? cleaned : `修改自动备份（${cleaned}）`;
+  }
   return raw;
 }
 
@@ -178,15 +182,15 @@ export function generateBossDashboard(workspace, audit) {
     checkpoints.length === 0
       ? `<div class="empty-note">目前还没有历史备份，下次让 AI 改代码前会自动创建。</div>`
       : checkpoints
-          .slice(0, 4)
+          .slice(0, 3)
           .map(cp => {
             const label = friendlyCpLabel(cp.label);
             return `<div class="undo-row">
-              <div>
+              <div class="undo-info">
                 <span class="undo-name">${escHtml(label)}</span>
                 <span class="undo-time">${escHtml(formatLocalTime(cp.createdAt))}</span>
               </div>
-              <div>
+              <div class="undo-actions">
                 <button type="button" class="live-only-btn rewind-outline-btn" style="display:none;" onclick="liveRewindCheckpoint('${escHtml(cp.id)}', '${escHtml(label)}')">退回这一版</button>
                 <button class="copy-btn ghost-btn offline-only-btn" data-copy="请把代码和数据库一起安全回退到存档点 ${escHtml(cp.id)}（${escHtml(label)}）">复制退回话术</button>
               </div>
@@ -254,11 +258,11 @@ export function generateBossDashboard(workspace, audit) {
           .map(cp => {
             const label = friendlyCpLabel(cp.label);
             return `<div class="undo-row">
-              <div>
+              <div class="undo-info">
                 <span class="undo-name">${escHtml(label)}</span>
                 <span class="undo-time">${escHtml(formatLocalTime(cp.createdAt))} · <code>${escHtml(cp.id)}</code></span>
               </div>
-              <div>
+              <div class="undo-actions">
                 <button type="button" class="live-only-btn rewind-outline-btn" style="display:none;" onclick="liveRewindCheckpoint('${escHtml(cp.id)}', '${escHtml(label)}')">退回这一版</button>
                 <button class="copy-btn ghost-btn offline-only-btn" data-copy="请把代码和数据库一起安全回退到存档点 ${escHtml(cp.id)}（${escHtml(label)}）">复制退回话术</button>
               </div>
