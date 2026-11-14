@@ -15,7 +15,7 @@ test('Polyglot & Embedded String.raw / HTML / Python FastAPI Reality Audit catch
     fs.mkdirSync(path.join(tmpRoot, 'src'), { recursive: true });
     fs.mkdirSync(path.join(tmpRoot, 'backend'), { recursive: true });
 
-    // Embedded `String.raw` frontend script (like 媒擎OS `mengine-cloud`)
+    // Embedded `String.raw` frontend script (SSR static UI builder pattern)
     fs.writeFileSync(
       path.join(tmpRoot, 'src/views-render.mjs'),
       `export const VIEWS_SCRIPT = String.raw\`

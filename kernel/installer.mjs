@@ -64,9 +64,9 @@ export function installGhostCTO(targetRootDir, options = {}) {
   const absTarget = path.resolve(targetRootDir);
   if (absTarget === GHOST_PACKAGE_ROOT && !options.allowSelf) {
     throw new Error(
-      '温馨提示：当前目录是 GhostCTO（影子 CTO）工具本身的源码目录，不需要给它自己安装。\n' +
-        '👉 请传入您的业务项目文件夹路径：node bin/ghost-cto.mjs init "/你的项目文件夹路径"\n' +
-        '👉 或者直接双击文件夹里的「双击安装到我的项目.command」（苹果）或「双击安装到我的项目.bat」（Windows）弹窗选择项目！'
+      '温馨提示：当前目录是 GhostCTO（影子 CTO）工具本身的安装器源码目录，请勿把业务项目直接混写在这里。\n' +
+        '👉 新手做新产品：请直接双击「1-双击新建我的空白项目.command」（苹果）或「.bat」（Windows），自动在桌面为您创建干净新项目！\n' +
+        '👉 保护已有项目：请双击「2-双击接入已有老项目.command」（苹果）或「.bat」（Windows）选择您的项目文件夹！'
     );
   }
   fs.mkdirSync(absTarget, { recursive: true });
@@ -164,9 +164,10 @@ export function installGhostCTO(targetRootDir, options = {}) {
   copyDirRecursive(skillsSrcDir, path.join(absTarget, '.claude', 'skills'));
   upsertMcpJsonFile(path.join(absTarget, '.mcp.json'), ghostServerEntry);
 
-  // 9. Windsurf (`.windsurf/rules/ghost-cto.md`)
+  // 9. Windsurf (`.windsurf/rules/ghost-cto.md` + `.windsurf/mcp_config.json`)
   fs.mkdirSync(path.join(absTarget, '.windsurf', 'rules'), { recursive: true });
   fs.writeFileSync(path.join(absTarget, '.windsurf', 'rules', 'ghost-cto.md'), agentsRuleText, 'utf8');
+  upsertMcpJsonFile(path.join(absTarget, '.windsurf', 'mcp_config.json'), ghostServerEntry);
 
   // 10. Create initial Git+SQLite checkpoint (if none exists yet), run full Reality Audit, write Capsule, Boss Dashboard & Launchers!
   let initialCheckpoint = null;
@@ -254,4 +255,31 @@ fi
   } catch {
     // ignore
   }
+}
+
+/**
+ * Create a brand-new, 100% clean beginner workspace folder (defaulting to ~/Desktop/<name>)
+ * pre-wired with GhostCTO's 8-IDE rules, skills, offline MCP engine, and Git safety net!
+ */
+export function createCleanBeginnerProject(rawProjectName = '我的第一个AI作品', parentDir = '') {
+  const safeName = String(rawProjectName || '我的第一个AI作品')
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, '-')
+    .replace(/^\.+/, '')
+    .trim() || '我的第一个AI作品';
+
+  const baseDir = parentDir
+    ? path.resolve(parentDir)
+    : path.join(process.env.HOME || process.env.USERPROFILE || process.cwd(), 'Desktop');
+  fs.mkdirSync(baseDir, { recursive: true });
+
+  const projectDir = path.join(baseDir, safeName);
+  fs.mkdirSync(projectDir, { recursive: true });
+
+  const res = installGhostCTO(projectDir);
+  return {
+    projectName: safeName,
+    projectDir,
+    ...res
+  };
 }

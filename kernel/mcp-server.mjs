@@ -74,7 +74,7 @@ const MCP_TOOLS = [
   {
     name: 'ghost_boss_dashboard',
     description:
-      '【刷新老板中文全景驾驶舱】生成或更新《老板全景驾驶舱.html》与跨软件记忆胶囊(.vibe/capsule.md)。支持腾讯WorkBuddy、豆包、Trae、Antigravity无缝接力。',
+      '【刷新项目体检报告与跨软件记忆胶囊】更新 .vibe/项目体检报告.html 与 .vibe/capsule.md，支持腾讯WorkBuddy、豆包、Trae、Antigravity、Cursor无缝接力。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -103,12 +103,12 @@ const MCP_TOOLS = [
   {
     name: 'ghost_incubate_idea',
     description:
-      '【零碎想法孵化器 & 零出错底座生成】当小白只有一个模糊、零碎的想法、说不清楚需求时必调！自动拆出清晰核心功能、真实SQLite表结构与防翻车负面清单写入 .vibe/blueprint.md；若当前是空文件夹且传 bootstrap=true，自动铺设97分零出错全栈防崩底座。',
+      '【零碎想法孵化器 & 100分专业底座生成】小白提出新想法后调取！生成 0->5 施工蓝图(.vibe/blueprint.md)；若传 bootstrap=true，自动按 audience 生成个人免登录底座(self)或带 scrypt 加密登录+员工分权+审计日志+Docker 的商用底座(commercial)。',
     inputSchema: {
       type: 'object',
       properties: {
         idea: { type: 'string', description: '小白口述的零碎模糊想法（哪怕只有几个字）' },
-        audience: { type: 'string', description: '使用人群: self(自己用) | team(团队内部) | public(给客户看)' },
+        audience: { type: 'string', description: '模式选择: self(方案A:个人电脑免登录) | commercial(方案B:带加密账号权限与操作日志的商用版)' },
         bootstrap: { type: 'boolean', description: '若当前为空文件夹，是否直接一键生成零出错可运行底座' },
         projectDir: { type: 'string', description: '项目根目录路径（默认当前工作区）' }
       },

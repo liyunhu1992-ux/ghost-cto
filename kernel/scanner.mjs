@@ -27,11 +27,16 @@ export const IGNORED_DIRS = new Set([
 ]);
 
 export const IGNORED_FILES = new Set([
+  '项目真假与安全体检报告.html',
   '老板全景驾驶舱.html',
   '双击启动项目.command',
   '双击启动项目.bat',
   '打开实时驾驶舱.command',
   '打开实时驾驶舱.bat',
+  '1-双击新建我的空白项目.command',
+  '1-双击新建我的空白项目.bat',
+  '2-双击接入已有老项目.command',
+  '2-双击接入已有老项目.bat',
   '双击安装到我的项目.command',
   '双击安装到我的项目.bat'
 ]);
@@ -233,7 +238,7 @@ function detectStaticBuilds(absRoot, packageJsons, codeFiles) {
     }
   }
 
-  // Custom `build-ui.mjs` -> `public/index.html` static generator pattern (used in 媒擎OS `mengine-cloud`!)
+  // Custom `build-ui.mjs` -> `public/index.html` static generator pattern
   const customBuilder = path.join(absRoot, 'build-ui.mjs');
   const publicHtml = path.join(absRoot, 'public', 'index.html');
   if (fs.existsSync(customBuilder) && fs.existsSync(publicHtml)) {

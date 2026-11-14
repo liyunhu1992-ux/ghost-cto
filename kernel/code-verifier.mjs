@@ -5,6 +5,14 @@ import { execFileSync } from 'node:child_process';
 import { scanWorkspace } from './scanner.mjs';
 import { runRealityAudit } from './reality-audit.mjs';
 
+const BLOCKING_AUDIT_IDS = new Set([
+  'FAKE_UI_HANDLER',
+  'FAKE_CLIENT_ONLY_SAVE',
+  'SILENT_CATCH',
+  'UNSAFE_PROXY_STREAM',
+  'PLAINTEXT_PASSWORD_DB'
+]);
+
 /**
  * Extract inline <script> blocks from an HTML file while preserving 1-based line offsets
  * so `vm.Script` reports the exact HTML line number if AI writes a browser JS syntax typo!
@@ -36,7 +44,6 @@ function checkHtmlInlineScripts(absPath, relPath) {
     const paddedCode = '\n'.repeat(startLineOffset) + body;
 
     try {
-      // Strip top-level ES module import/export keywords lightly if type="module" for vm.Script check
       const checkCode =
         scriptType === 'module'
           ? paddedCode
@@ -101,10 +108,43 @@ function checkJsonFiles(absRoot) {
   return errors;
 }
 
+function checkBlueprintContract(absRoot, ws, audit) {
+  const bpPath = path.join(absRoot, '.vibe', 'blueprint.json');
+  if (!fs.existsSync(bpPath) || ws.codeFiles.length === 0) return [];
+  try {
+    const bp = JSON.parse(fs.readFileSync(bpPath, 'utf8'));
+    if (bp && bp.needPassword) {
+      const hasLoginRoute = audit.lineage.backendRoutes.some(r =>
+        /\/api\/(?:auth\/login|login|admin\/login)/i.test(r.rawPath)
+      );
+      if (!hasLoginRoute) {
+        return [
+          {
+            id: 'MISSING_COMMERCIAL_AUTH',
+            severity: 'P0',
+            file: 'src/server.mjs',
+            line: 1,
+            title: '商用模式契约未兑现：蓝图要求开启账号登录权限保护，但后端缺失 /api/auth/login 登录鉴权接口',
+            aiDirective: 'src/server.mjs:1|MISSING_COMMERCIAL_AUTH|Blueprint requires commercial auth (needPassword=true); implement scrypt login & session auth'
+          }
+        ];
+      }
+    }
+  } catch {
+    // ignore malformed blueprint
+  }
+  return [];
+}
+
 /**
  * Deterministic 0-Token Compiler & Reality Verification Gate (`ghost-cto verify`).
- * Catches JS syntax errors, HTML <script> syntax errors, broken JSON, 404 dead API contracts,
- * and fake in-memory persistence BEFORE the beginner ever opens the browser!
+ * Blocks:
+ * 1. JS/MJS/CJS syntax errors (`node --check`)
+ * 2. HTML inline `<script>` syntax errors (`vm.Script` with exact line offset)
+ * 3. Broken JSON manifests (`package.json` / `tsconfig.json`)
+ * 4. All P0 blockers (404 dead APIs, memory-only fake DBs, unprotected `/api/admin/*`, leaked secrets, stale `dist/`)
+ * 5. Deception & silent-failure traps (`FAKE_UI_HANDLER` empty clicks, `FAKE_CLIENT_ONLY_SAVE` fake toasts, `SILENT_CATCH` `catch {}`, `PLAINTEXT_PASSWORD_DB`)
+ * 6. Unfulfilled Option-B Commercial Auth contract in `.vibe/blueprint.json`
  */
 export function verifyWorkspaceCode(targetRootDir) {
   const absRoot = path.resolve(targetRootDir);
@@ -122,33 +162,33 @@ export function verifyWorkspaceCode(targetRootDir) {
   }
 
   const audit = runRealityAudit(ws);
-  const p0Findings = audit.findings.filter(f => f.severity === 'P0');
+  const contractBlockers = checkBlueprintContract(absRoot, ws, audit);
+  const p0Findings = [
+    ...contractBlockers,
+    ...audit.findings.filter(f => f.severity === 'P0' || BLOCKING_AUDIT_IDS.has(f.id))
+  ];
 
   const ok = syntaxErrors.length === 0 && p0Findings.length === 0;
 
   const errorLines = [
-    ...syntaxErrors.map(
-      e => `❌ [代码语法错误] ${e.file}:${e.line} — ${e.message}`
-    ),
-    ...p0Findings.map(
-      f => `🔴 [致命假功能/断头路] ${f.file}:${f.line} — ${f.title}`
-    )
+    ...syntaxErrors.map(e => `❌ [代码语法错误] ${e.file}:${e.line} — ${e.message}`),
+    ...p0Findings.map(f => `🔴 [真假与安全门禁阻断] ${f.file}:${f.line} — ${f.title}`)
   ];
 
   const aiFixPrompt = ok
     ? ''
     : [
-        '影子 CTO 零出错门禁（ghost-cto verify）抓到了以下必须立刻修复的错误，请精准修复对应文件行号，严禁破坏其他正常功能：',
+        '影子 CTO 零出错门禁（ghost-cto verify）抓到了以下必须立刻修复的错误，请精准修复对应文件行号，严禁写空按钮、假保存或空 catch {}，严禁破坏其他正常功能：',
         ...errorLines,
         '修好后请再次运行 `node .vibe/engine/bin/ghost-cto.mjs verify` 直到显示 PASS 为止！'
       ].join('\n');
 
   const aiCompact = ok
-    ? `GHOST_VERIFY_PASS|score:${audit.score}/100|files_checked:${ws.codeFiles.length}|syntax_errors:0|p0_blockers:0`
+    ? `GHOST_VERIFY_PASS|score:${audit.score}/100|files_checked:${ws.codeFiles.length}|syntax_errors:0|blockers:0`
     : [
-        `GHOST_VERIFY_FAIL|score:${audit.score}/100|syntax_errors:${syntaxErrors.length}|p0_blockers:${p0Findings.length}`,
+        `GHOST_VERIFY_FAIL|score:${audit.score}/100|syntax_errors:${syntaxErrors.length}|blockers:${p0Findings.length}`,
         ...syntaxErrors.map(e => `SYNTAX_ERR|${e.file}:${e.line}|${e.message}`),
-        ...p0Findings.map(f => `P0_BLOCKER|${f.aiDirective}`)
+        ...p0Findings.map(f => `BLOCKER|${f.aiDirective}`)
       ].join('\n');
 
   return {

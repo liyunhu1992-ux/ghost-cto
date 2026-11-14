@@ -157,7 +157,7 @@ test('Self-Install Guard, Git Pre-Commit Secret Blocker & Live Cockpit HTTP Serv
     fs.writeFileSync(dbPath, v1Bytes);
 
     installGhostCTO(tmpRoot);
-    assert.ok(fs.existsSync(path.join(tmpRoot, '打开实时驾驶舱.command')));
+    assert.ok(fs.existsSync(path.join(tmpRoot, '.vibe/项目体检报告.html')));
     assert.ok(fs.existsSync(path.join(tmpRoot, '.git/hooks/pre-commit')));
 
     // 2. Verify Git pre-commit hook BLOCKS committing hardcoded Aliyun AccessKey (`LTAI...`)!

@@ -430,15 +430,18 @@ export function runRealityAudit(workspace, existingLineage = null) {
   const rawScore = 100 - p0Count * 22 - p1Count * 8 - p2Count * 3;
   const score = Math.max(8, Math.min(100, rawScore));
 
-  const launchVerdict =
-    p0Count > 0
-      ? `🔴 暂不可直接发给外部客户（存在 ${p0Count} 项致命阻断项，先点下方一键修复话术处理）`
-      : p1Count > 0
-      ? `🟡 可内部试用演示，正式商用前建议修完 ${p1Count} 项高危隐患`
-      : `🟢 体检通过！核心链路真通落库，可放心发给客户使用`;
+  const isEmptyStarter = workspace.codeFiles.length === 0;
+  const launchVerdict = isEmptyStarter
+    ? `🌱 空白新项目护栏已就绪（尚未生成产品代码，打开 AI 聊天框直接说出你的想法即可开建）`
+    : p0Count > 0
+    ? `🔴 暂不可直接发给外部客户（存在 ${p0Count} 项致命阻断项，先按修复指引处理）`
+    : p1Count > 0
+    ? `🟡 可内部试用演示，正式交付前建议修完 ${p1Count} 项高危隐患`
+    : `🟢 体检通过！核心链路真通落库，无假按钮与裸奔隐患，可放心交付使用`;
 
   return {
     score,
+    isEmptyStarter,
     p0Count,
     p1Count,
     p2Count,

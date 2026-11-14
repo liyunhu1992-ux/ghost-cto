@@ -66,7 +66,8 @@ test('8-Platform Domestic/Overseas Sync + Atomic Code & SQLite+WAL Time Machine 
       '.agents/plugins/ghost-cto/mcp_config.json',
       '.cursor/rules/ghost-cto.mdc',
       '.windsurf/rules/ghost-cto.md',
-      '老板全景驾驶舱.html',
+      '.windsurf/mcp_config.json',
+      '.vibe/项目体检报告.html',
       '双击启动项目.command',
       '双击启动项目.bat'
     ];

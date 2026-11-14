@@ -200,7 +200,7 @@ export function generateBossDashboard(workspace, audit) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escHtml(runtime.projectName)} · 影子 CTO 老板全景驾驶舱</title>
+  <title>${escHtml(runtime.projectName)} · 影子 CTO 真假与安全体检报告</title>
   <style>
     :root {
       --bg: #F8F7F4;
@@ -409,23 +409,23 @@ export function generateBossDashboard(workspace, audit) {
 <body>
   <div class="container">
     <div class="mode-bar">
-      <span id="live-status-text" class="mode-badge-offline">📄 当前为离线快照模式（双击项目内的「打开实时驾驶舱」即可开启 0-Token 网页一键重测 / 秒备份 / 秒回退）</span>
+      <span id="live-status-text" class="mode-badge-offline">📄 离线体检报告快照（日常直接在 AI 聊天框说大白话即可自动驱动全套保护）</span>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button id="btn-live-verify" class="live-only-btn" style="display:none; background:#2563EB;" onclick="liveVerifyCode()">✅ 0-Token 语法与零出错全检</button>
         <button id="btn-live-audit" class="live-action-btn" style="display:none;" onclick="liveRunAudit()">🔄 0-Token 立即重新体检刷新分数</button>
-        <button class="copy-btn ghost-btn" data-copy="${escHtml(shareCertificateText)}">🏅 复制项目体检战报（发团队/晒进展）</button>
+        <button class="copy-btn ghost-btn" data-copy="${escHtml(shareCertificateText)}">🏅 复制项目体检战报</button>
       </div>
     </div>
 
     <div class="hero">
       <div class="hero-left">
-        <h1>🛡️ ${escHtml(runtime.projectName)} · 影子 CTO 老板全景驾驶舱</h1>
-        <div class="hero-sub">不看一行英文代码，30 秒看清你的产品哪些真通、哪些有坑、能不能发给客户用。</div>
+        <h1>🛡️ ${escHtml(runtime.projectName)} · 项目真假与安全体检报告</h1>
+        <div class="hero-sub">本地确定性引擎 0-Token 扫描结果：核验按钮真假落库、语法错误与上线安全防线。</div>
         <div class="port-list">${portLinksHtml}</div>
       </div>
       <div class="score-box">
-        <div class="score-num">${audit.score}</div>
-        <div class="score-label">商用健康总分（满分 100）</div>
+        <div class="score-num">${isZeroCodeStarter ? '待建' : audit.score}</div>
+        <div class="score-label">${isZeroCodeStarter ? '空白新项目护栏已就绪' : '工程健康总分（满分 100）'}</div>
         ${scoreDeltaHtml}
       </div>
     </div>
@@ -783,35 +783,46 @@ export function generateBossDashboard(workspace, audit) {
 </body>
 </html>`;
 
-  const rootOutPath = path.join(workspace.rootDir, '老板全景驾驶舱.html');
+  const reportOutPath = path.join(workspace.rootDir, '.vibe', '项目体检报告.html');
   const vibeOutPath = path.join(workspace.rootDir, '.vibe', 'boss-dashboard.html');
-  fs.mkdirSync(path.dirname(vibeOutPath), { recursive: true });
-  fs.writeFileSync(rootOutPath, html, 'utf8');
+  fs.mkdirSync(path.dirname(reportOutPath), { recursive: true });
+  fs.writeFileSync(reportOutPath, html, 'utf8');
   fs.writeFileSync(vibeOutPath, html, 'utf8');
 
-  return { rootOutPath, vibeOutPath };
+  return { rootOutPath: reportOutPath, vibeOutPath };
 }
 
 /**
- * Generate self-healing double-click launcher scripts (`双击启动项目` + `打开实时驾驶舱`)
- * so complete beginners never get stuck when reopening their computer!
+ * Generate self-healing double-click launcher scripts (`双击启动项目.command` & `双击启动项目.bat`)
+ * keeping the user's project root 100% clean, zero-dependency offline-fast, and friendly even before Step 1!
  */
 export function generateSelfHealingLaunchers(workspace) {
   const runtime = detectRuntimeTopology(workspace);
-  const primaryPort = runtime.ports.length > 0 ? runtime.ports[runtime.ports.length - 1] : 3000;
+  const primaryPort = runtime.ports.length > 0 ? runtime.ports[runtime.ports.length - 1] : 3090;
   const portsStr = runtime.ports.join(' ');
 
   const staleBuildCmds = workspace.staleBuilds
     .map(sb => sb.buildCmd || (sb.appDir === '.' ? 'npm run build' : `npm --prefix "${sb.appDir}" run build`))
     .join('\n');
 
-  // 1. App self-healing launcher (`双击启动项目.command` & `.bat`)
   const macScript = `#!/bin/bash
 cd "$(dirname "$0")"
 echo "===================================================="
 echo "🛡️ 影子 CTO (GhostCTO) 自愈式一键启动器"
-echo "正在为您检查并唤醒项目：${runtime.projectName}"
+echo "项目：${runtime.projectName}"
 echo "===================================================="
+
+if [ ! -f "package.json" ] && [ ! -f "src/server.mjs" ] && [ ! -f "main.py" ] && [ ! -f "app.py" ] && [ ! -f "index.html" ]; then
+  echo ""
+  echo "🌱 当前新项目的防崩护栏已经装好啦，还没有生成产品代码哦！"
+  echo "👉 下一步超简单："
+  echo "   1. 打开 豆包 / Trae / 腾讯 WorkBuddy / Cursor，点击「打开文件夹」选中当前文件夹；"
+  echo "   2. 在聊天框直接用大白话告诉 AI 你想做什么（例如：我想做个美甲会员预约小工具）；"
+  echo "   3. 等 AI 替你铺好第一版后，再回来双击我就能直接打开网页体验啦！"
+  echo ""
+  osascript -e 'display dialog "🌱 保护护栏已就绪！\\n\\n请先用 豆包 / Trae / WorkBuddy / Cursor 打开本文件夹，在聊天框告诉 AI 你想做什么。等第一版生成后再双击启动即可！" buttons {"明白啦"} default button 1 with title "影子 CTO 温馨提示"' >/dev/null 2>&1 || true
+  exit 0
+fi
 
 for PORT in ${portsStr || primaryPort}; do
   PID=$(lsof -ti tcp:$PORT 2>/dev/null)
@@ -821,18 +832,22 @@ for PORT in ${portsStr || primaryPort}; do
   fi
 done
 
-if [ -f "package.json" ] && [ ! -d "node_modules" ]; then
-  echo "📦 首次运行，正在自动安装依赖包..."
+if [ -f "package.json" ] && [ ! -d "node_modules" ] && grep -Eq '"(dependencies|devDependencies)"' package.json; then
+  echo "📦 首次运行，正在安装项目依赖包..."
   npm install
 fi
 
 ${staleBuildCmds ? `echo "🔨 正在同步最新界面打包文件..."\n${staleBuildCmds} || true` : '# 无需静态预打包'}
 
-(sleep 2 && open "http://127.0.0.1:${primaryPort}") &
+(sleep 1.5 && open "http://127.0.0.1:${primaryPort}") &
 
 echo "🚀 服务启动中！浏览器即将自动打开 http://127.0.0.1:${primaryPort}"
 echo "（保持本窗口开启即可使用，关闭本窗口即停止服务）"
-${runtime.startCmd}
+if [ -f "src/server.mjs" ] && ! grep -Eq '"dependencies"' package.json 2>/dev/null; then
+  node src/server.mjs
+else
+  ${runtime.startCmd}
+fi
 `;
 
   const winScript = `@echo off
@@ -840,41 +855,51 @@ chcp 65001 >nul
 cd /d "%~dp0"
 echo ====================================================
 echo [GhostCTO] 影子 CTO 自愈式一键启动器
-echo 正在为您唤醒项目：${runtime.projectName}
+echo 项目：${runtime.projectName}
 echo ====================================================
+
+if not exist "package.json" if not exist "src\\server.mjs" if not exist "main.py" if not exist "app.py" (
+  echo.
+  echo [温馨提示] 当前新项目的防崩护栏已装好，尚未生成产品代码！
+  echo 请先用 豆包 / Trae / 腾讯 WorkBuddy / Cursor 打开本文件夹，在聊天框告诉 AI 你想做什么。
+  echo 等 AI 铺好第一版后，再双击本脚本即可自动打开网页！
+  echo.
+  pause
+  exit /b 0
+)
 
 if exist "package.json" (
   if not exist "node_modules" (
-    echo 首次运行，正在自动安装依赖包...
-    call npm install
+    findstr /i "\\"dependencies\\" \\"devDependencies\\"" package.json >nul 2>&1
+    if not errorlevel 1 (
+      echo 首次运行，正在安装项目依赖包...
+      call npm install
+    )
   )
 )
 
 start "" "http://127.0.0.1:${primaryPort}"
 echo 浏览器正在打开 http://127.0.0.1:${primaryPort} （请保持此窗口开启）
+if exist "src\\server.mjs" (
+  findstr /i "\\"dependencies\\"" package.json >nul 2>&1
+  if errorlevel 1 (
+    node src\\server.mjs
+    pause
+    exit /b 0
+  )
+)
 call ${runtime.startCmd}
-pause
-`;
-
-  // 2. Live Interactive Cockpit launcher (`打开实时驾驶舱.command` & `.bat`)
-  const liveMacScript = `#!/bin/bash
-cd "$(dirname "$0")"
-echo "🛡️ 正在启动【${runtime.projectName}】0-Token 实时交互版老板全景驾驶舱..."
-node ".vibe/engine/bin/ghost-cto.mjs" studio --dir "$(pwd)"
-`;
-
-  const liveWinScript = `@echo off
-chcp 65001 >nul
-cd /d "%~dp0"
-echo [GhostCTO] 正在启动 0-Token 实时交互版老板全景驾驶舱...
-node ".vibe\\engine\\bin\\ghost-cto.mjs" studio --dir "%cd%"
 pause
 `;
 
   const macPath = path.join(workspace.rootDir, '双击启动项目.command');
   const winPath = path.join(workspace.rootDir, '双击启动项目.bat');
-  const liveMacPath = path.join(workspace.rootDir, '打开实时驾驶舱.command');
-  const liveWinPath = path.join(workspace.rootDir, '打开实时驾驶舱.bat');
+  const liveMacPath = path.join(workspace.rootDir, '.vibe', '打开体检报告看板.command');
+  const liveWinPath = path.join(workspace.rootDir, '.vibe', '打开体检报告看板.bat');
+  fs.mkdirSync(path.join(workspace.rootDir, '.vibe'), { recursive: true });
+
+  const liveMacScript = `#!/bin/bash\ncd "$(dirname "$0")/.."\nnode ".vibe/engine/bin/ghost-cto.mjs" studio --dir "$(pwd)"\n`;
+  const liveWinScript = `@echo off\nchcp 65001 >nul\ncd /d "%~dp0\\.."\nnode ".vibe\\engine\\bin\\ghost-cto.mjs" studio --dir "%cd%"\npause\n`;
 
   fs.writeFileSync(macPath, macScript, { encoding: 'utf8', mode: 0o755 });
   fs.writeFileSync(liveMacPath, liveMacScript, { encoding: 'utf8', mode: 0o755 });

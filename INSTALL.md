@@ -1,57 +1,62 @@
-# GhostCTO（影子 CTO）v2.0 安装与国内软件配置指南
+# GhostCTO（影子 CTO）安装与软件配置指南
 
-只需要电脑装有基础 `Node.js >= 18`，**零第三方依赖、不需要联网下载额外包、不会弹出英文越权弹窗**。
-
----
-
-## 1. 纯小白最推荐方式：双击弹窗选文件夹（一行命令都不敲！）
-
-如果你从 GitHub 下载并解压了本仓库：
-- **苹果电脑 (macOS)**：直接双击文件夹里的 **`双击安装到我的项目.command`**，在弹出的访达（Finder）窗口中点选你的业务项目文件夹，它会自动完成 8 大软件安装、22 项真机自检，并自动为你打开《老板全景驾驶舱.html》！
-- **Windows 电脑**：直接双击文件夹里的 **`双击安装到我的项目.bat`**，在弹出的窗口中点选你的业务项目文件夹即可！
+前置要求：电脑装有基础 **`Node.js >= 18`**（零第三方 npm 依赖，全程无需联网拉取额外包，不会跳英文越权弹窗）。
 
 ---
 
-## 2. 让 AI 替你装 / 命令行一键安装
+## 一、零命令行双击上手（推荐纯小白使用）
 
-### 发一句话给 AI 软件替你装
-打开你正在用的 **腾讯 WorkBuddy / 豆包编程 / Trae / Antigravity / Cursor**，直接发一句中文：
+在 GitHub 页面点击右上角绿色 **`Code` -> `Download ZIP`** 下载并解压后，你会看到两个清晰的双击脚本：
 
-> 请运行 `npx ghost-cto init` 帮当前项目装上影子 CTO，并跑一遍 `doctor` 自检。
+### 场景 1：我要从 0 开始做一个新工具 / 新产品
+- **苹果电脑 (macOS)**：双击 **`1-双击新建我的空白项目.command`**（若首次打开提示“无法验证开发者”，右键点它选「打开」即可）；
+- **Windows 电脑**：双击 **`1-双击新建我的空白项目.bat`**；
+- 输入你的新项目名字（例如 `我的美甲管家`），它会自动在你的 **电脑桌面** 创建干净的项目文件夹，并装好全套防崩规则与离线引擎。随后用 AI 软件打开桌面上这个新文件夹即可直接开聊！
 
-### 终端一行命令
-macOS / Linux：
+### 场景 2：我手里已经有现成的代码文件夹，想加装保护
+- **苹果电脑 (macOS)**：双击 **`2-双击接入已有老项目.command`**，在访达窗口选中你的老项目文件夹；
+- **Windows 电脑**：双击 **`2-双击接入已有老项目.bat`**，在弹窗选中你的老项目文件夹。
+
+---
+
+## 二、命令行安装方式（适合熟悉终端的用户）
+
 ```bash
-./install.sh /你的项目文件夹路径
-```
-Windows PowerShell：
-```powershell
-.\install.ps1 C:\你的项目文件夹路径
-```
-或者直接用 `npx`：
-```bash
-npx ghost-cto try                      # 1秒沙箱全链路真机演练
-npx ghost-cto init /你的项目文件夹路径  # 一键安装到你的项目
-npx ghost-cto studio /你的项目文件夹路径 # 启动 0-Token 实时交互版网页驾驶舱
+# 1. 克隆本仓库到本地
+git clone https://github.com/liyunhu1992-ux/ghost-cto.git
+cd ghost-cto
+
+# 2A. 在桌面创建一个干净的新项目并自动配齐保护护栏
+node bin/ghost-cto.mjs create "我的美甲管家"
+
+# 2B. 或者接入你已有的项目文件夹
+node bin/ghost-cto.mjs init /你的已有项目路径
+
+# 3. 运行 21 项配置与跨进程 MCP 真机通信自检
+node bin/ghost-cto.mjs doctor ~/Desktop/我的美甲管家
 ```
 
 ---
 
-## 3. 各大国内外软件打开后的效果
+## 三、8 大国内外 AI 编程软件生效说明
 
-| 你用的软件 | 你需要手动做什么吗？ | 生效机制 |
+`create` 或 `init` 执行一次后，项目文件夹内会自动生成以下原生配置，换软件打开同一个文件夹不会失忆：
+
+| 软件名称 | 自动生成的项目内配置文件 | 你需要手动设置吗？ |
 | :--- | :--- | :--- |
-| **腾讯 WorkBuddy** | **不需要**，直接打开项目文件夹即可 | 自动识别 `.workbuddy/rules/`、`.workbuddy/skills/` 与 `.workbuddy/mcp.json`（无损保留原有 MCP） |
-| **腾讯 CodeBuddy** | **不需要**，直接打开项目文件夹即可 | 自动识别 `.codebuddy/CODEBUDDY.md`、`.codebuddy/skills/` 与 `.codebuddy/mcp.json` |
-| **字节 Trae IDE / 豆包编程插件** | **不需要**，直接打开项目文件夹即可 | 自动识别 `.trae/rules/project_rules.md`、`.trae/skills/` 与 `.trae/mcp.json` |
-| **字节 豆包桌面客户端** | 在豆包桌面版「MCP 设置」导入 `.vibe/豆包桌面版与WorkBuddy_MCP配置.json` | 导入后即可在豆包对话里直接调用全部 7 个影子 CTO 体检、大师提示词与时光机工具 |
-| **Google Antigravity** | **不需要**，打开项目自动生效 | 自动加载根目录 `AGENTS.md`、`.agents/skills/` 与 `.agents/plugins/ghost-cto/` |
-| **Cursor / Claude Code / Windsurf** | **不需要**，打开项目自动生效 | 自动挂载 `.cursor/rules/`、`CLAUDE.md`、`.mcp.json` 与 `.windsurf/rules/` |
+| **字节 Trae IDE / 豆包编程** | `.trae/rules/project_rules.md` + `.trae/skills/*` + `.trae/mcp.json` | **不需要**，打开项目文件夹自动生效 |
+| **字节 豆包桌面客户端** | `.vibe/豆包桌面版与WorkBuddy_MCP配置.json` | 在豆包桌面版「MCP 设置」导入该 JSON 即可 |
+| **腾讯 WorkBuddy** | `.workbuddy/rules/ghost-cto.md` + `.workbuddy/skills/*` + `.workbuddy/mcp.json` | **不需要**，打开项目文件夹自动生效（保留原有 MCP） |
+| **腾讯 CodeBuddy** | `.codebuddy/CODEBUDDY.md` + `.codebuddy/rules/ghost-cto.md` + `.codebuddy/mcp.json` | **不需要**，打开项目文件夹自动生效 |
+| **Google Antigravity** | `AGENTS.md` + `.agents/skills/*` + `.agents/plugins/ghost-cto/` | **不需要**，打开项目自动挂载 |
+| **Cursor** | `.cursor/rules/ghost-cto.mdc` (`alwaysApply: true`) + `.cursor/mcp.json` | **不需要**，打开项目自动生效 |
+| **Claude Code** | `CLAUDE.md` (`@AGENTS.md`) + `.claude/skills/*` + `.mcp.json` | **不需要**，启动自动挂载 |
+| **Windsurf / OpenAI Codex** | `.windsurf/rules/ghost-cto.md` + `.windsurf/mcp_config.json` + `AGENTS.md` | **不需要**，同时内置 `.vibe/engine` 命令行双通道兜底 |
 
 ---
 
-## 4. 装完后项目里多出来的 3 个中文神器怎么用？
+## 四、项目里的《双击启动项目》怎么用？
 
-1. **`老板全景驾驶舱.html`（离线快照版）**：随时双击打开。不用看一行代码，直接看健康分、较初检涨了多少分、8 套自动带入你项目数据表的卡兹克/Karpathy 大师提示词，以及一键复制修复话术。
-2. **`打开实时驾驶舱.command` / `.bat`（0-Token 实时交互版）**：双击启动本地引擎直连！不花 1 个大模型 Token，直接在网页上点按钮即可**「立即重新体检刷新分数」**、**「一键双备份代码+数据库」**、**「一键秒退回历史好版本」**、**「搜中文按钮名秒查影响范围」**！
-3. **`双击启动项目.command` / `.bat`（防打不开自愈启动器）**：隔天重启电脑网页打不开、或者端口卡死报错 `EADDRINUSE` 时，双击它自动清理旧端口、自动补打包并打开浏览器。
+每次让 AI 做好或改好网页后，打开你的项目文件夹双击 **`双击启动项目.command`**（Mac）或 **`双击启动项目.bat`**（Windows）：
+1. 如果之前端口卡死了（`EADDRINUSE`），它会自动清理旧进程；
+2. 零外部依赖项目 `0.1 秒` 直接离线拉起服务并打开浏览器；只有当 `package.json` 真正声明了第三方依赖且未安装时才会自动补跑 `npm install`。

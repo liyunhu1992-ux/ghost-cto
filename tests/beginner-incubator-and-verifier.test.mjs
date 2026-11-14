@@ -48,7 +48,7 @@ test('Vague 5-word beginner idea -> Blueprint -> 97-score Runnable SQLite Golden
   try {
     // 1. Beginner installs GhostCTO on a completely empty folder
     installGhostCTO(tmpDir);
-    const initialDash = fs.readFileSync(path.join(tmpDir, '老板全景驾驶舱.html'), 'utf8');
+    const initialDash = fs.readFileSync(path.join(tmpDir, '.vibe', '项目体检报告.html'), 'utf8');
     assert.ok(initialDash.includes('零碎想法孵化器'), 'Empty folder should display the Zero-to-One Idea Incubator');
 
     // 2. Beginner opens Live Cockpit and enters only a vague fragment: "管美甲店会员次卡"
@@ -102,7 +102,7 @@ test('Vague 5-word beginner idea -> Blueprint -> 97-score Runnable SQLite Golden
 
     const indexPath = path.join(tmpDir, 'public', 'index.html');
     const origIndex = fs.readFileSync(indexPath, 'utf8');
-    fs.writeFileSync(indexPath, origIndex.replace('loadItems();', 'const bad = (;'), 'utf8');
+    fs.writeFileSync(indexPath, origIndex.replace('</body>', '<script>const bad = (;</script></body>'), 'utf8');
 
     const verBroken = verifyWorkspaceCode(tmpDir);
     assert.equal(verBroken.ok, false);

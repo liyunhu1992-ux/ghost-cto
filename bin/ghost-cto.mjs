@@ -10,7 +10,7 @@ import { saveCheckpoint, rewindCheckpoint, listCheckpoints } from '../kernel/tim
 import { writeMemoryCapsule, learnScar, detectRuntimeTopology } from '../kernel/memory-capsule.mjs';
 import { generateBossDashboard, generateSelfHealingLaunchers } from '../kernel/boss-dashboard.mjs';
 import { buildMasterPromptArsenal, getMasterPromptById, formatPromptArsenalReport } from '../kernel/prompt-arsenal.mjs';
-import { installGhostCTO, GHOST_PACKAGE_ROOT } from '../kernel/installer.mjs';
+import { installGhostCTO, createCleanBeginnerProject, GHOST_PACKAGE_ROOT } from '../kernel/installer.mjs';
 import { startMcpStdioServer } from '../kernel/mcp-server.mjs';
 import { startLiveCockpitServer } from '../kernel/live-server.mjs';
 import { runDoctor, runSelfTrial } from '../kernel/doctor.mjs';
@@ -49,6 +49,19 @@ function resolveTargetDir(posIndex = 1) {
 
 async function main() {
   switch (cmd) {
+    case 'create':
+    case 'new': {
+      const name = positional[1] || flags.name || '我的第一个AI作品';
+      const parentDir = flags.parent || positional[2] || '';
+      const res = createCleanBeginnerProject(name, parentDir);
+      console.log(`\n🎉 已为您创建干净的新项目并装好影子 CTO 保护护栏！`);
+      console.log(`📂 新项目路径: ${res.projectDir}`);
+      console.log(`👉 下一步（无需背任何复杂提示词）：`);
+      console.log(`   1. 打开 豆包 / Trae / 腾讯 WorkBuddy / Cursor，点击「打开文件夹」选中：${res.projectDir}`);
+      console.log(`   2. 在聊天框直接用大白话告诉 AI 你想做什么（哪怕只有几个字）即可开始！\n`);
+      break;
+    }
+
     case 'init':
     case 'sync': {
       const targetDir = resolveTargetDir(1);
@@ -58,14 +71,11 @@ async function main() {
       });
       console.log(`\n🛡️  GhostCTO（影子 CTO）v2.0.0 已在项目中激活完毕`);
       console.log(`📂 项目目录: ${res.rootDir}`);
-      console.log(`📊 商用健康分: ${res.score} / 100 分 （P0致命:${res.p0Count} | P1高危:${res.p1Count} | P2提醒:${res.p2Count}）`);
-      console.log(`🚦 上线结论: ${res.launchVerdict}`);
+      console.log(`🚦 当前状态: ${res.launchVerdict}`);
       console.log(`📦 初始时光机存档: ${res.initialCheckpointId || '已就绪'}`);
       console.log(`🧠 跨软件记忆胶囊: .vibe/capsule.md (${res.capsuleTokens} tokens)`);
-      console.log(`✨ 大师级提示词库: 已内置 8 套卡兹克/Karpathy 精选指令（自动注入本项目数据表与构建护栏）`);
-      console.log(`🖥️  离线版老板驾驶舱: ${res.dashboardPath}`);
-      console.log(`⚡ 实时版老板驾驶舱: ${res.liveCockpitMacPath}`);
-      console.log(`🚀 一键自愈启动器: ${res.macLauncherPath}`);
+      console.log(`📄 离线体检报告: ${res.dashboardPath}`);
+      console.log(`🚀 双击启动项目: ${res.macLauncherPath}`);
       console.log(`✅ 已同步适配 8 大国内外软件（含 Git 提交防泄密门禁）:`);
       for (const p of res.platformsSynced) {
         console.log(`   - ${p}`);
@@ -299,6 +309,7 @@ async function main() {
       break;
     }
 
+    case 'report':
     case 'dashboard':
     case 'launcher': {
       const targetDir = resolveTargetDir(1);
@@ -307,8 +318,7 @@ async function main() {
       writeMemoryCapsule(ws, audit);
       const dash = generateBossDashboard(ws, audit);
       const launch = generateSelfHealingLaunchers(ws);
-      console.log(`🖥️  已更新离线全景驾驶舱: ${dash.rootOutPath}`);
-      console.log(`⚡ 已更新实时交互驾驶舱: ${launch.liveMacPath}`);
+      console.log(`📄 已更新项目体检报告: ${dash.rootOutPath}`);
       console.log(`🚀 已更新双击自愈启动器: ${launch.macPath}`);
       break;
     }
@@ -337,23 +347,24 @@ async function main() {
 
     default: {
       console.log(`
-GhostCTO (影子 CTO) v2.0.0 — 不懂代码做产品的防忽悠、防改崩「影子 CTO」
+GhostCTO (影子 CTO) v2.0.0 — 零基础小白从 0 到 5 做产品的保姆级技术合伙人
 
-零门槛用法（无需记命令）：
-  直接双击仓库里的「双击安装到我的项目.command」(Mac) 或「双击安装到我的项目.bat」(Windows)，弹窗选文件夹即自动安装并打开驾驶舱！
+零命令行用法（直接双击即可）：
+  - 新手做新产品：双击「1-双击新建我的空白项目.command」(Mac) 或「.bat」(Windows)
+  - 保护已有项目：双击「2-双击接入已有老项目.command」(Mac) 或「.bat」(Windows)
 
 命令行完整参考:
-  ghost-cto try                        在本机跑一遍 1 秒全自动真机试跑（验证全部内核模块）
-  ghost-cto init [项目目录]            一键激活 8 大国内外软件(WorkBuddy/豆包/Trae/Antigravity/Cursor等) + 生成驾驶舱
-  ghost-cto studio [项目目录]          启动 0-Token 实时交互版老板驾驶舱（网页一键重测 / 秒备份 / 一键秒回退）
-  ghost-cto doctor [项目目录]          22 项真机验证：核验 8 平台配置、Token 预算与跨进程 MCP 双协议通信
-  ghost-cto prompts [项目目录]         导出自动注入本项目家底的 8 套大师级提示词（卡兹克 & Karpathy 精选）
-  ghost-cto audit [项目目录] [--ai]    0-Token 扫描假落库、假开关、空吞错、裸奔后台与断头接口
-  ghost-cto xray [项目目录] [--ai]     0-Token 绘制 UI -> API -> 数据库 3D 真假穿透图
-  ghost-cto impact <关键词>            改代码前锁定最小修改爆炸半径（支持直接搜中文按钮名）
-  ghost-cto save "存档说明"            同时备份 Git 代码 + SQLite 数据库（双轨时光机）
-  ghost-cto rewind [存档编号]          一键后悔药：把代码和数据库一起退回好状态
-  ghost-cto mcp                        启动零依赖 Stdio MCP 服务（供豆包桌面版/WorkBuddy/Trae/Cursor调用）
+  ghost-cto create "项目名称"           在桌面创建干净新项目并自动装好 8 大 AI 软件保护护栏
+  ghost-cto bootstrap "想法" [目录]     一键生成 100 分 SQLite 全栈底座 (--audience self|commercial)
+  ghost-cto verify [项目目录]           0-Token 语法编译 + 假按钮/断头路/裸奔后台硬门禁检查
+  ghost-cto init [项目目录]             为已有项目同步 8 大国内外软件规则、技能与离线 MCP
+  ghost-cto audit [项目目录] [--ai]     0-Token 扫描假落库、假保存、空 catch、裸奔后台与密钥泄漏
+  ghost-cto xray [项目目录] [--ai]      0-Token 绘制 前端 -> 后端路由 -> 数据库 真假穿透表
+  ghost-cto impact <关键词>             改代码前按中文按钮名或模块名锁定最小修改文件集
+  ghost-cto save "存档说明"             原子备份 Git 代码 + SQLite(WAL) 数据库
+  ghost-cto rewind [存档编号]           一键后悔药：把代码和数据库一起原子恢复到正常版本
+  ghost-cto doctor [项目目录]           21 项真机验证：配置、Token 预算与跨进程 MCP 双协议测试
+  ghost-cto try                         在本机沙箱跑一遍 1 秒全自动真机演练
 `);
       break;
     }

@@ -34,7 +34,7 @@ function buildModuleSymbolIndex(workspace) {
       continue;
     }
     const lex = analyzeSource(raw, file.ext);
-    const { imports, reExports } = extractImportsAndReExports(lex.cleanCode, file.absPath, workspace.packagesMap);
+    const { imports, reExports } = extractImportsAndReExports(lex.cleanCode, file.absPath, workspace.packagesMap, raw, file.ext);
     const functions = extractFunctions(raw, lex);
     const mutableGlobals = extractMutableGlobals(lex);
 
@@ -120,10 +120,25 @@ function markReachability(fileDataMap, workspace) {
 /**
  * Resolve ES module imports, dynamic `import()`, CJS `require()`, AND barrel re-exports.
  */
-export function extractImportsAndReExports(cleanCode, fromAbsPath, packagesMap) {
+export function extractImportsAndReExports(cleanCode, fromAbsPath, packagesMap, rawSource = '', ext = '') {
   const resolved = new Map(); // importedSymbol -> { targetAbsPath, exportedName }
   const reExports = []; // Array<{ targetAbsPath, star: boolean, map: Map<exportedAlias, origName> }>
   const fromDir = path.dirname(fromAbsPath);
+
+  // HTML <script src="..."> static script references (prevents false-positive zombie flags on /vibe-shield.js or /app.js!)
+  if (ext === '.html' && rawSource) {
+    const htmlScriptSrcRe = /<script\b[^>]*?\bsrc\s*=\s*['"]([^'"]+)['"][^>]*>/gi;
+    let hm;
+    while ((hm = htmlScriptSrcRe.exec(rawSource)) !== null) {
+      const srcSpec = hm[1].trim().split('?')[0].split('#')[0];
+      if (!srcSpec || /^https?:\/\//i.test(srcSpec)) continue;
+      const relCandidate = srcSpec.startsWith('/') ? `./${srcSpec.replace(/^\/+/, '')}` : srcSpec.startsWith('.') ? srcSpec : `./${srcSpec}`;
+      const targetAbs = resolveModuleSpecifier(relCandidate, fromDir, packagesMap);
+      if (targetAbs) {
+        resolved.set(`__html_script_${targetAbs}`, { targetAbsPath: targetAbs, exportedName: '*' });
+      }
+    }
+  }
 
   // Named + default + namespace imports: import { a, b as c } from 'spec' / import d from 'spec' / import * as ns from 'spec'
   const importRegex = /import\s+([\s\S]*?)\s+from\s+['"]([^'"]+)['"]/g;
@@ -224,7 +239,7 @@ export function resolveModuleSpecifier(spec, fromDir, packagesMap) {
     return null;
   }
 
-  // 1. Workspace package import (e.g. @mengine/db)
+  // 1. Workspace package import (e.g. @workspace/db)
   if (!spec.startsWith('.') && !spec.startsWith('/')) {
     if (packagesMap.has(spec)) {
       return packagesMap.get(spec).entryAbsPath;
@@ -712,7 +727,7 @@ function extractBackendRoutes(fileDataMap) {
         continue;
       }
 
-      const localHasAuth = /\b(?:ctx|adminCtx|getAuthCtx|getAdminCtx|requireAuth|verifyToken|checkAdmin|session)\b/.test(handlerSnippet);
+      const localHasAuth = /\b(?:ctx|adminCtx|getAuthCtx|getAdminCtx|getAuthUser|requireAuth|requireAdmin|verifyToken|checkAdmin|session)\b/.test(handlerSnippet);
       const protectedByBarrier = authBarriers.some(b => m.index > b.gateIndex && m.index < b.scopeEnd);
       const isAuthenticated = localHasAuth || protectedByBarrier;
 

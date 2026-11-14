@@ -1,175 +1,138 @@
 <div align="center">
 
-<img src="./plugin/assets/logo.svg" width="88" height="88" alt="GhostCTO Logo" />
+<img src="./plugin/assets/logo.svg" width="84" height="84" alt="GhostCTO Logo" />
 
 # GhostCTO（影子 CTO）
 
-### **「让每一个零基础小白，都能真正把 Vibe Coding 玩起来、做出来、不翻车。」**
+### **让完全不懂代码的零基础小白，在 AI 聊天框里只说大白话，从 `0` 到 `5` 做出真正能用的成熟软件。**
 
-**一行接入豆包/Trae、腾讯 WorkBuddy、CodeBuddy、Antigravity、Cursor、Claude Code：**  
-**哪怕你一行英文代码都看不懂——从空白文件夹的第 1 句大白话开始，它自动替你拍板技术、0 Token 抓 AI 假按钮、锁死改动防连环崩、连代码带数据库一键吃后悔药。**
+**零第三方依赖（Pure Node.js >= 18）· 一次接入字节 Trae / 豆包、腾讯 WorkBuddy / CodeBuddy、Antigravity、Cursor、Claude Code、Windsurf：**  
+**自动拦贪多画饼、替你拍板技术栈、把专业开发团队才懂的细节（真 SQLite 落库、加密登录、员工分权、防连击、防误删、导出 Excel）一次配齐，并用本地 0-Token 门禁死死拦住假按钮与改崩事故。**
 
-[![Zero Dependencies](https://img.shields.io/badge/Dependencies-0_(Pure_Node_Built--ins)-059669?style=flat-square)](#)
-[![Token Cost](https://img.shields.io/badge/Audit_Token_Cost-0_Tokens_(Local_AST_Lexer)-2563EB?style=flat-square)](#)
-[![Always-On Prompt](https://img.shields.io/badge/Router_Footprint-410_Tokens_(90%25_KV_Cached)-7C3AED?style=flat-square)](#)
-[![License: MIT](https://img.shields.io/badge/License-MIT-18181B?style=flat-square)](./LICENSE)
+[![Zero Dependencies](https://img.shields.io/badge/外部依赖-0_(纯_Node.js_内置模块)-059669?style=flat-square)](#)
+[![Audit Token Cost](https://img.shields.io/badge/本地验真消耗-0_Token_(毫秒级语法与真假门禁)-2563EB?style=flat-square)](#)
+[![Always-On Prompt](https://img.shields.io/badge/常驻路由体积-411_Tokens_(命中90%25前缀缓存)-7C3AED?style=flat-square)](#)
+[![Tests](https://img.shields.io/badge/自动化对抗测试-13%2F13_全绿通过-059669?style=flat-square)](#)
+[![License: MIT](https://img.shields.io/badge/开源协议-MIT_(100%25免费)-18181B?style=flat-square)](./LICENSE)
 
-[**📖 小白与 AI 对话全链路通关手册（照着抄，绝不翻车）**](./小白与AI对话全链路通关手册.md) ｜ [**English README**](./README.en.md) ｜ [**安装与国内软件配置指南**](./INSTALL.md) ｜ [**小白英文弹窗急救手册**](./docs/POPUP_DICTIONARY.md) ｜ [**安全说明**](./SECURITY.md)
+[**📖 零基础小白与 AI 对话全链路通关手册**](./小白与AI对话全链路通关手册.md) ｜ [**安装与配置指南**](./INSTALL.md) ｜ [**英文弹窗急救词典**](./docs/POPUP_DICTIONARY.md) ｜ [**English README**](./README.en.md) ｜ [**安全说明**](./SECURITY.md)
 
 </div>
 
 <p align="center">
-  <img src="./docs/live-cockpit-demo.svg" width="100%" alt="GhostCTO 15秒老板驾驶舱真机动态演示：40分抓假代码 -> 卡兹克与Karpathy家底自动注入 -> 97分商用全绿" />
+  <img src="./docs/zero-to-five-flow.svg" width="100%" alt="GhostCTO 从 0 到 5 聊天框保姆级全链路守护图" />
 </p>
 
 > [!TIP]
-> 刚从 GitHub 下载解压？**你完全不需要背诵或复制任何复杂的提示词！**  
-> 只要在项目里装上 GhostCTO，你只管在聊天框里说最普通的大白话（哪怕只有几个字：“我想做个美甲会员预约”），AI 就会自动变身保姆级技术合伙人，主动反问、自动铺真数据库、自动存快照、改崩了一句人话自动秒退回！  
-> 👉 点击查看全保姆级真实对话演示：[**《零基础小白与 AI 对话全链路通关手册》**](./小白与AI对话全链路通关手册.md)
+> **不需要背任何提示词，也不需要看任何复杂的“驾驶舱”后台！**  
+> 下载解压后双击 **`1-双击新建我的空白项目`**，用你的 AI 编程软件打开桌面上自动建好的干净文件夹，直接在聊天框说一句最普通的话（比如：“我想做个美甲会员预约”），AI 就会按 `0 → 5` 的正规工程节奏一步步带你做出来。  
+> 👉 先看 3 分钟实操对话演示：[**《零基础小白与 AI 对话全链路通关手册》**](./小白与AI对话全链路通关手册.md)
 
 ---
 
-## 💡 一句话讲清楚：为什么你需要「影子 CTO」？
+## 💡 为什么要做这个开源项目？（直击小白 Vibe Coding 最痛的翻车现场）
 
-市面上的 AI 编程插件全是给**程序员**做的（满屏英文命令、Git 分支、单元测试术语）。  
-而当你是一个**完全不懂代码的业务创始人 / 小白主理人**，用 AI 做商业项目时，你真正让人崩溃的**「八大懵逼瞬间」**从来没人管——直到 **GhostCTO** 出现：
+市面上大多数 AI 编程插件是给程序员写的（满屏 Git 分支、AST 术语、单元测试命令）。而一个完全不懂代码的新手想用 AI 做出能真正干活的产品时，几乎都会栽在下面这 **6 个真实大坑**里：
 
-| 纯小白做产品的「八大懵逼瞬间」 | 普通 AI 软件的表现 | **GhostCTO（影子 CTO）的硬核解法** |
+| 小白自己摸索必踩的坑 | 没有保护时 AI 的常见表现 | **GhostCTO（影子 CTO）在聊天框里的硬核矫正** |
 | :--- | :--- | :--- |
-| **1. 黑盒失明懵**<br>左边一排英文代码文件，根本不知道项目做到了哪、能不能用 | 只会往黑框里吐代码 | 自动生成离线网页 **《老板全景驾驶舱.html》**，双击打开全中文看清健康分、真假接口与一键复制修复按钮 |
-| **2. 隔夜打不开懵**<br>昨天还好好的，重启电脑后网页打不开或报端口占用 `EADDRINUSE` | 让你自己去终端敲 `lsof`、`kill -9`、`npm build` | 自动生成 **《双击启动项目.command / .bat》**，双击自动清卡死端口、补打包、拉起服务并打开浏览器 |
-| **3. 技术选择题懵**<br>AI 反问你：“用 Prisma 还是 Drizzle？JWT 还是 Session？” | 把架构锅甩给不懂技术的老板 | **CTO 代拍板铁律**：严禁向老板提任何技术选型问题，AI 自动按最稳方案拍板，只允许问纯业务规则 |
-| **4. 随口问一句乱改懵**<br>只是问一句“现在视频怎么存的？”，AI 直接把 8 个文件改废了 | 听不懂咨询和动手的区别 | **问号只读锁**：识别咨询类语气强制锁死文件只读；内置《英文弹窗翻译卡》且全程沙箱静默 0 惊吓 |
-| **5. 表面能点重启全丢懵**<br>按钮能点、提示成功，结果数据只存内存没进数据库，重启全没 | 极度喜欢写内存假数组与空 `catch {}` 糊弄交差 | **0-Token 3D 全栈真假穿透引擎**：毫秒级追踪 `前端按钮 -> API路由 -> 跨包函数 -> SQLite真表/真AI请求` |
-| **6. 打地鼠连环崩懵**<br>让它改个后台列表颜色，结果前台登录挂了，越修越烂 | 每次乱改十几个无关文件 | **爆炸半径锁定器**（支持直接搜中文按钮名！）：改前锁死允许修改文件上限、API 契约与静态 `dist` 必跑打包 |
-| **7. 换软件失忆懵**<br>国外软件额度用完换 **WorkBuddy** 或 **豆包/Trae**，新 AI 完全不认识项目 | 规则互不兼容，从头瞎猜烧光额度 | **8 大国内外软件同源双写 + `<350 token` 记忆胶囊**：换任何软件打开同一个文件夹，1 秒无缝接力 |
-| **8. 不敢上线见客懵**<br>怕后台没设密码被人乱删、怕密钥泄露被盗刷、怕改坏丢客户数据 | 只管写 Demo，不管商用死活 | **代码 + SQLite（含 WAL）双轨原子时光机** + **10 维商用上线安检门**（自动抓裸奔管理端接口与明文密钥） |
+| **1. 说不清要什么 / 一口气贪多**<br>脑子里只有零碎念头，或者一上来就要做 20 个大模块 | AI 照单全收，一口气生成 20 个点不动的假菜单和样板房空壳 | **第 0 步定性反问与急刹车**：贪多超过 3 个模块强制劝阻收敛；主动问清 **A. 自己电脑免登录用** 还是 **B. 多账号商用版** |
+| **2. 想不到专业开发团队的细节**<br>只知道说“做个增删改查”，上线才发现没权限、误删没确认、导不出表格 | 你不提 AI 就不写：密码明文裸存、点一下删除直接清空、连点两下存两条重复数据 | **第 1 步自动配齐专业底座**：内置防连击锁、防误删二次确认、在线编辑、UTF-8 BOM 零乱码导出 Excel；选 **B 版**直接配好 **`scrypt` 加盐密码加密 + 店长/员工分权 + 手机号脱敏 (`138****8801`) + 操作留痕日志 + `Dockerfile`** |
+| **3. 表面提示“保存成功”，刷新全丢**<br>按钮能点也弹绿框了，结果第二天打开数据全没了 | AI 最喜欢写内存假数组或只弹前端提示不调后端接口糊弄交差 | **`ghost-cto verify` 0-Token 硬门禁**：本地词法与全栈血缘追踪，抓到空点击假按钮、不连后端的假保存、内存假落库或空 `catch {}`，直接拦截不准 AI 交差 |
+| **4. 随口问一句“为什么”，代码被改废**<br>只是想问问原因，AI 咔咔把七八个正常文件改崩了 | 分不清“咨询问题”与“动手改代码”，每次乱动一堆无关文件 | **问号只读锁 + 中文按钮名爆炸半径锁**：带问号咨询强制 `0 修改`；动手前自动按中文按钮词锁定 `<=3` 个文件上限 |
+| **5. 越改越乱，崩溃删文件夹重来**<br>改一个颜色把登录搞挂了，连改三次绝望重开“最终版v4” | 越修越错进入死循环，甚至把测试攒的客户数据也搞丢了 | **防弃坑后悔药（代码 + SQLite 双轨时光机）**：聊天框发一句“改崩了退回刚才”，1 秒把 Git 代码和 SQLite（含 `-wal`）一起字节级还原 |
+| **6. 重启电脑打不开 / 密钥误传泄密**<br>隔天打开报端口占用 `EADDRINUSE`，或者把 `.env` 密钥传上网被盗刷 | 让你自己去黑框敲 `lsof`、`kill -9`；对明文密钥毫无拦截 | 自动生成自愈式 **《双击启动项目》**（自动清卡死端口并打开浏览器）+ **`.git/hooks/pre-commit` 本地防泄密急刹车** |
 
 ---
 
-## 🇨🇳 原生适配国内 + 海外 8 大主流 AI 软件（换软件不失忆）
+## 🚀 30 秒极速开局（已通过真机全链路验证）
 
-只需初始化一次，`GhostCTO` 会在项目内同时生成 8 套原生配置与**零依赖本地离线 MCP 服务**（无需联网下载、不跳英文弹窗）：
+> **环境要求**：电脑装有基础 **`Node.js >= 18`** 即可（0 第三方依赖，断网也能运行）。
 
-| 软件名称 | 自动生成的原生适配文件 | 激活方式 |
-| :--- | :--- | :--- |
-| **腾讯 WorkBuddy** | `.workbuddy/skills/*` + `.workbuddy/rules/ghost-cto.md` + `.workbuddy/mcp.json` | 打开项目文件夹即自动生效 |
-| **腾讯 CodeBuddy** | `.codebuddy/CODEBUDDY.md` + `.codebuddy/rules/ghost-cto.md` + `.codebuddy/skills/*` | 打开项目文件夹即自动生效 |
-| **字节 豆包编程 / Trae** | `.trae/rules/project_rules.md` + `.trae/skills/*` + `.trae/mcp.json` | Trae 打开即生效；附赠 **豆包桌面版** MCP 一键导入 JSON |
-| **Google Antigravity** | `.agents/plugins/ghost-cto/`（含 `plugin.json`, `hooks`, `skills`, `AGENTS.md`） | 原生 Workspace Plugin 自动挂载 |
-| **Cursor** | `.cursor/rules/ghost-cto.mdc` (`alwaysApply: true`) + `.cursor/mcp.json` | 打开项目文件夹即自动生效 |
-| **Claude Code** | `CLAUDE.md` (`@AGENTS.md`) + `.claude/skills/*` + `.mcp.json` | 启动自动挂载规则、技能与 MCP |
-| **Windsurf** | `.windsurf/rules/ghost-cto.md` | 打开项目自动生效 |
-| **OpenAI Codex / 通用** | `AGENTS.md` | 遵循开放 `AGENTS.md` 行业标准 |
+### 方式一：纯小白双击向导（一行命令都不用敲）
+1. 点击本页面右上角绿色 **`Code` -> `Download ZIP`** 下载并解压；
+2. 根据你的需求双击对应文件：
+   - 🌱 **我要从 0 做个新产品**：双击 **`1-双击新建我的空白项目.command`**（苹果）或 **`1-双击新建我的空白项目.bat`**（Windows） → 输入作品名字 → 自动在你的**电脑桌面**建好干净文件夹并装好全套保护！
+   - 📂 **我要保护已有老项目**：双击 **`2-双击接入已有老项目.command`**（苹果）或 **`2-双击接入已有老项目.bat`**（Windows） → 弹窗选中你的老项目文件夹即可。
+3. 打开 **Trae / 豆包编程 / 腾讯 WorkBuddy / Cursor / Antigravity**，点击 **「打开文件夹」** 选中桌面上的新项目，直接在聊天框用大白话开聊！
 
----
+### 方式二：终端命令行使用
+```bash
+git clone https://github.com/liyunhu1992-ux/ghost-cto.git
+cd ghost-cto
 
-## 💰 费不费 Token？不但不费，反而帮你省下 75%～85% 的冤枉 Token！
+# 在桌面创建干净的新项目并自动装好 8 大 AI 软件保护护栏
+node bin/ghost-cto.mjs create "我的美甲管家"
 
-很多新手担心：“装这么深的系统会不会很烧钱？”——恰恰相反！没有 GhostCTO 时，AI 为了找一个报错要盲目读取十几个大文件（单次烧掉 `30,000+ tokens`），改崩返工三次直接烧掉 `150,000+ tokens`。
+# 或者为已有项目安装保护护栏
+node bin/ghost-cto.mjs init /path/to/your-project
 
-**GhostCTO 采用三层「零废话编译器级省流架构」：**
-1. **重活全部交给本地 Node.js 引擎（消耗 `0 LLM Token`）**：词法去噪、跨包 AST 函数调用链追踪、前后端接口对账、SQLite 数据库快照全部在本地 CPU `< 80 毫秒` 算完，只把 `< 220 tokens` 的精准 `文件:行号` 坐标喂给大模型！
-2. **常驻路由锁死 `410 tokens` 且 100% 字节级静态不变**：融合 Karpathy 极简第一性原理，完美命中各大模型底层的 **KV Prefix Cache（前缀缓存 90% 费用折扣）**，每轮对话实际计费仅折合 **`~41 tokens`**！
-3. **7 大专业技能包 + 8 套大师提示词库按需懒加载（每个技能仅 `247～489 tokens`，提示词库平时 `0 Token`）**：融合 **数字生命卡兹克 (KKKKhazix)** 苏格拉底单问法、**Andrej Karpathy** 外科手术铁律与 **Linear/Stripe 去 AI 塑料味高定审美**，平时睡觉 `0 消耗`，用到哪句点哪个！
-
----
-
-## ✨ 内置「数字生命卡兹克 & 全网封神」大师提示词引擎（动态注入真实家底！）
-
-普通开源提示词仓库只给你一堆空白模板，AI 依然不知道你项目里有哪些真实数据表、跑在哪个端口、改完要不要重新打包。  
-**GhostCTO 独创「0 常驻 Token · 家底动态注入弹药库」（`kernel/prompt-arsenal.mjs`）**：打开《老板全景驾驶舱.html》切换到 **`✨ 大师级神级提示词 (8)`** 标签页，输入一句你的想法点复制，自动把**你的想法 + 本项目真实 SQLite 表名 + 端口 + 前端打包护栏**打包好：
-
-1. 🔥 **苏格拉底式「单问澄清」立项令**（源自卡兹克追问法：先管住手，每次只问 1 个生意选择题，最多 4 问收口）
-2. 🌍 **Karpathy 极简外科手术防崩令**（源自 GitHub 21万星 `CLAUDE.md`：最少代码、绕远路主动劝阻、严禁动无关代码）
-3. 🎨 **去 AI 塑料味 · Linear/Stripe 高定界面重塑令**（封杀廉价紫蓝渐变、Emoji 卡片汤与编造假数字）
-4. 🧯 **三连败死循环 · 强制急刹车破局令**（同一个 Bug 改了 3 遍还没好时一键叫停，6 步全链路捉真凶）
-5. 👑 **顶尖领域专家选角 · 商业与产品问诊令**（源自卡兹克专家选角法：先选最毒辣内行，砍掉伪需求）
-6. 🚀 **防跑偏任务书 · 负面边界施工蓝图令**（灵感自 `khazix-skills/leader`：明确「第一版坚决不做清单」）
-7. 🧹 **代码·记忆·驾驶舱「三层洁癖同步」令**（灵感自 `khazix-skills/neat-freak`：彻底消灭换软件失忆与脑腐）
-8. ✍️ **去 AI 爹味与黑话 · 商业页面文案洗稿令**（灵感自卡兹克四检法：清剿“赋能/抓手/闭环”，全改说人话）
+# 在本机跑一遍全部 13 组自动化功能与权限对抗测试
+npm test
+```
 
 ---
 
-## 🏗️ 为什么它能拿 10,000+ Star？（七大硬核确定性内核，绝非水提示词）
+## 🏗️ 硬核工程底座（绝非纯文本提示词仓库）
 
 <p align="center">
   <img src="./docs/architecture.svg" width="100%" alt="GhostCTO 零依赖确定性内核架构图" />
 </p>
 
-```mermaid
-flowchart TD
-    User["零代码创始人（只说大白话中文）"] --> Router["410-Token 静态自动路由器 (AGENTS.md) — 90% 缓存折扣 · 问号只读锁"]
-    Router --> MCP["零依赖离线 Stdio MCP 服务与 CLI (ghost-cto)"]
-    MCP --> Lexer["1. 有限状态词法剥离器 (lexer.mjs) — O(N) 剥离注释与字符串干扰"]
-    MCP --> Lineage["2. 3D 全栈穿透血缘图 (lineage-graph.mjs) — 前端 ↔ API ↔ 跨包函数 ↔ 数据库/AI"]
-    MCP --> Audit["3. 10维假功能与上线法医引擎 (reality-audit.mjs) — 抓假落库 · 空吞错 · 裸奔后台"]
-    MCP --> Blast["4. 爆炸半径锁定器 (blast-radius.mjs) — 按中文按钮名反查依赖与改动上限"]
-    MCP --> Time["5. 代码+SQLite双轨时光机 (time-capsule.mjs) — 含 WAL 快照与 SHA-256 校验"]
-    MCP --> Prompts["6. 卡兹克 & Karpathy 动态注入弹药库 (prompt-arsenal.mjs) — 自动带入真实表与端口"]
-    MCP --> Cockpit["7. 实时+离线双模老板驾驶舱与防泄密门禁 (boss-dashboard.mjs / live-server.mjs)"]
-```
+### 1. 同源适配国内外 8 大主流 AI 软件 + 双通道执行兜底
+只需初始化一次，自动同步生成 **腾讯 WorkBuddy**（`.workbuddy/`）、**腾讯 CodeBuddy**（`.codebuddy/`）、**字节 Trae / 豆包**（`.trae/` + 豆包桌面版导入配置）、**Google Antigravity**（`.agents/`）、**Cursor**（`.cursor/`）、**Claude Code**（`CLAUDE.md` + `.mcp.json`）、**Windsurf**（`.windsurf/`）与通用 **`AGENTS.md`**。  
+- 同时将零依赖引擎离线内置到项目的 `.vibe/engine/` 中：**支持 MCP 工具协议的软件直接走原生 MCP，未开启 MCP 的软件也能直接调用本地 CLI 100% 确定性执行**。
+- 常驻路由 `AGENTS.md` 严格控制在 **`411 tokens`** 且字节级静态不变，稳定命中大模型前缀缓存（KV Prefix Cache），省流不烧额度。
+
+### 2. A / B 双模 100 分专业全栈底座（`kernel/golden-scaffold.mjs`）
+| 维度 | 方案 A：个人电脑日常版 (`--audience self`) | 方案 B：多账号商用完整版 (`--audience commercial`) |
+| :--- | :--- | :--- |
+| **真实持久化** | 原生 `node:sqlite` (`WAL` 防丢模式) + 磁盘原子降级 | 原生 `node:sqlite` (`WAL`)：业务表 + `users` + `sessions` + `audit_logs` |
+| **账号与密码安全** | 免登录，本地双击秒开即用 | `crypto.scryptSync` 16字节随机盐哈希 + `timingSafeEqual` + `HttpOnly` 会话 |
+| **角色权限与隐私** | 单人完整增删改查权限 | **店长管理员 (`admin`) vs 普通员工 (`staff`)**：接口级 `401/403` 硬鉴权、禁止员工删数据、员工视角客户手机号自动脱敏为 `138****8801` |
+| **专业交互细节** | 按钮防连击锁、删除二次确认、在线编辑弹窗、状态分组、空状态引导、防白屏报错捕获条 | 同左全配齐 + 右上角在线改密弹窗 + 店长开通/停用员工子账号面板 + 操作留痕审计日志 |
+| **数据导出与部署** | 一键导出 UTF-8 BOM Excel 兼容 `.csv`（中文零乱码） + 《双击启动项目》 | 同左（员工导出自动脱敏）+ 自动生成 `.env.example` 与生产级 `Dockerfile` |
+
+### 3. 全栈多语言静态穿透引擎（老项目体检同样支持）
+除了内置的黄金底座，GhostCTO 的静态词法与血缘分析器（`lexer.mjs` / `lineage-graph.mjs` / `reality-audit.mjs`）同样支持扫描已有全栈项目：
+- **前端与小程序请求识别**：React (`.jsx`/`.tsx`)、Vue 3 (`.vue`)、Svelte (`.svelte`)、Next.js（支持 `@/` 与 `~/` 路径别名）、原生 HTML，以及微信小程序 `wx.request` / `uni.request` / `Taro.request`；
+- **后端与 ORM 识别**：Node `http`、Express / Fastify / Hono / Koa、Next.js App/Pages Router、Python FastAPI / Flask，以及 SQLite / Supabase / Prisma / Drizzle / Mongoose / SQLAlchemy。
 
 ---
 
-## 🚀 30 秒极速安装上手
+## 🔍 诚实说明：它能 100% 保证什么？不能替代什么？（拒绝自嗨）
 
-> **零外部依赖**：仅需电脑装有基础 `Node.js >= 18`，无需配置 Python、无需联网拉取第三方包。
+为了让每一位使用者清清楚楚不踩坑，我们把工程边界摊开讲明：
 
-### 方式零：纯小白双击弹窗选文件夹（真·一行命令都不敲！）
-从 GitHub 下载解压后：
-- **苹果电脑 (macOS)**：直接双击仓库里的 **`双击安装到我的项目.command`**，在弹出的访达（Finder）窗口里点选你的项目文件夹，自动装好并自动打开《老板全景驾驶舱》！
-- **Windows 电脑**：直接双击仓库里的 **`双击安装到我的项目.bat`**，在弹出的窗口里点选你的项目文件夹即可！
-
-### 方式一：发一句话让 AI 替你装
-直接把下面这句话复制发给你正在用的 **WorkBuddy / 豆包 / Trae / Antigravity / Cursor**：
-> **“请帮我在当前项目运行 `npx ghost-cto init` 安装影子 CTO，做一次真假体检并生成《老板全景驾驶舱.html》。”**
-
-### 方式二：一行终端命令接入任意项目
-```bash
-# 在你的项目文件夹运行（或传入项目路径）
-npx ghost-cto init /path/to/your-project
-```
-
-执行完毕后，打开你的项目文件夹，你会立刻多出 **3 个全中文神器**（再加 **Git 自动防泄密门禁**）：
-1. 🖥️ **`老板全景驾驶舱.html`（离线版）** —— 随时双击打开，健康总分、较初检提升分数、8 套大师提示词、真假接口与一键复制修复话术一目了然！
-2. ⚡ **`打开实时驾驶舱.command` / `.bat`（0-Token 实时交互版）** —— 双击在浏览器开启本地引擎直连：**不消耗 1 个大模型 Token**，直接在网页上点按钮完成「80毫秒重新体检」、「一键双备份代码+数据库」、「一键秒退回历史好版本」、「搜中文按钮名秒查影响范围」！
-3. 🚀 **`双击启动项目.command` / `.bat`** —— 以后重启电脑打不开网页，双击它自动清卡死端口、自动补打包、自动打开浏览器！
-4. 🛑 **Git 提交防泄密急刹车钩子（`.git/hooks/pre-commit`）** —— 一旦不小心把 `.env` 或阿里云 `LTAI` / 腾讯云 `AKID` / 大模型 `sk-` / 数据库密码写进代码点提交，本地毫秒级自动拦截报警！
+1. **本地 Node.js 代码 100% 确定性硬保证的部分（已由 `tests/` 下 13 组自动化测试真机验证）**：
+   - 双击向导在桌面创建干净新项目并同步 8 大 AI 软件配置；
+   - 方案 A 与方案 B 底座开箱即得 `100/100` 健康分，真实读写 SQLite、真实 `scrypt` 密码加密、真实 `401/403` 接口权限拦截与手机号脱敏、真实 UTF-8 BOM CSV 导出；
+   - `ghost-cto verify` 本地毫秒级 0-Token 阻断 JS 语法错、HTML `<script>` 语法错、JSON 损坏、空点击假按钮、只弹提示不发请求的假保存、空 `catch {}`、404 断头接口、裸奔 `/api/admin/*` 与明文密码；
+   - `.git/hooks/pre-commit` 本地硬拦截 `.env` 私密文件与阿里云 `LTAI` / 腾讯云 `AKID` / 大模型 `sk-` 等硬编码密钥提交；
+   - `save` 与 `rewind` 对 Git 代码和 SQLite（含 `-wal`）做字节级原子备份与恢复。
+2. **客观存在的能力边界（绝不夸大）**：
+   - **大模型偶发偷懒边界**：在聊天框里“先问选择题再写代码”依赖 AI 遵守项目内的 `AGENTS.md` 规则。如果遇到极弱模型漏调工具，你只需在聊天框提醒一句“按项目规则跑一下 verify 检查”，或依赖页面底部的防白屏捕获条兜底纠偏。
+   - **产品形态与外部资质边界**：自动生成的零出错底座是**电脑 + 手机浏览器自适应的全栈 Web 软件**。如果你最终需要上架微信官方审核的小程序包、苹果 App Store 原生壳，或接入真实微信商户号收款（需营业执照与商户号证书），GhostCTO 能帮你把本地后端接口、数据库和 `wx.request` 真假对账守住，但各平台的开发者账号注册、备案与支付商户资质仍需你自行申请。
 
 ---
 
-## 🌐 全栈多语言与国内主流框架原生支持（不挑项目）
-
-无论你的项目是用什么技术栈生成的，GhostCTO 的零依赖本地编译器内核都能精准穿透（无需装任何插件）：
-- **前端与小程序**：React (`.jsx`/`.tsx`)、Vue 3 单文件组件 (`.vue`)、Svelte (`.svelte`)、Next.js App/Pages Router（原生支持 `@/` 与 `~/ ` 路径别名防误报！）、原生 HTML、`String.raw` 模板，以及**微信小程序 `wx.request` / `uni-app` (`uni.request`) / `Taro.request`**！
-- **后端框架**：Node.js 原生 `http`、Express / Fastify / Hono / Koa、Next.js API Routes、**Python FastAPI / Flask / Django**！
-- **数据库与 ORM 识别**：原生 SQL / `node:sqlite`、**Supabase (`.from().insert/select`)**、**Prisma**、**Drizzle ORM (`pgTable`/`sqliteTable`)**、**Mongoose**、**Python SQLAlchemy / Django ORM**！
-
----
-
-## 🛠️ 完整 CLI 与 MCP 工具箱参考
+## 🛠️ CLI 与 MCP 工具速查表
 
 | 命令 / MCP 工具 | 作用（0 Token 本地确定性执行） |
 | :--- | :--- |
-| `ghost-cto try` | 在本机沙箱自动跑完 1 秒全链路真机演练（测试 8 平台安装、MCP 跨进程通信、抓假功能与数据库回退） |
-| `ghost-cto bootstrap "零碎想法" [目录]` | **零基础从 0 到 1 神器**：哪怕只有几个字的模糊念头，自动拆清蓝图并一键铺好 **97 分零出错 SQLite 全栈可运行底座**（自带防白屏与报错秒修条） |
-| `ghost-cto incubate "零碎想法" [目录]` / `ghost_incubate_idea` | **零碎想法孵化器**：把说不清的碎片想法自动变成清晰 4 大功能、真实数据表结构与防翻车清单（`.vibe/blueprint.md`） |
-| `ghost-cto verify [目录]` / `ghost_verify_code` | **代码零出错编译门禁**：0-Token 检查全部 JS 语法、HTML `<script>` 脚本语法、JSON 格式与前后端真假接口，有错不准 AI 交差 |
-| `ghost-cto init [目录]` | 一键同步 8 大国内外软件规则/Skills/MCP（增量合并绝不覆盖原有工具）+ 创建初始存档 + 生成驾驶舱 |
-| `ghost-cto studio [目录]` | 启动 **0-Token 实时交互版老板驾驶舱**（支持浏览器直接点重新体检、双轨备份、秒回退与中文按钮影响反查） |
-| `ghost-cto doctor [目录]` | 22 项真机体检：核验各软件配置文件、Token 预算，并从外部目录拉起真实子进程测试双协议 MCP 通信 |
-| `ghost-cto prompts [目录]` / `ghost_master_prompt` | 按需导出自动注入本项目真实数据表、端口与打包护栏的 8 套大师级提示词（卡兹克 & Karpathy 精选） |
-| `ghost-cto audit [目录]` / `ghost_reality_audit` | 10 维真假功能与商用上线安检（抓样板房空壳、假保存、裸奔 `/api/admin`、空吞错、泄漏密钥） |
-| `ghost-cto xray [目录]` / `ghost_xray_lineage` | 绘制 `前端 -> API -> 跨包函数 -> SQLite 表 / 真实外部大模型` 全栈穿透表（支持 JS/TS/JSX/HTML/Python） |
-| `ghost-cto impact "按钮中文名"` / `ghost_blast_radius` | 改代码前按中文界面词或模块名锁定最小修改文件集与必跑打包命令 |
-| `ghost-cto save "说明"` / `ghost_save_checkpoint` | 原子备份 Git 代码与全部 `.sqlite`/`.db`（含 `-wal` 日志与 SHA-256 校验） |
-| `ghost-cto rewind [编号]` / `ghost_rewind_checkpoint` | 自动先存一份急救备份，再把代码和数据库一起原子回退到指定存档点 |
-| `ghost-cto learn --rule "..."` | 把踩过的坑写入 `.vibe/immune-rules.json`，生成自定义静态扫描规则永久免疫 |
-| `ghost-cto budget` | 审计常驻提示词与各技能包的精确 BPE Token 占用 |
+| `ghost-cto create "项目名"` | 在桌面创建干净新项目文件夹并自动装好全套 8 平台保护护栏 |
+| `ghost-cto bootstrap "想法" [目录] --audience self\|commercial` | `ghost_incubate_idea`：生成 `.vibe/blueprint.md` 蓝图并铺设 100 分 A/B 全栈底座 |
+| `ghost-cto verify [目录]` | `ghost_verify_code`：语法编译 + 假按钮/假保存/断头路/裸奔后台硬门禁检查 |
+| `ghost-cto audit [目录]` | `ghost_reality_audit`：10 维真假功能与上线安全扫描（同步更新 `.vibe/项目体检报告.html`） |
+| `ghost-cto xray [目录]` | `ghost_xray_lineage`：绘制 `前端 -> 后端路由 -> 数据库表` 全栈真假穿透表 |
+| `ghost-cto impact "按钮中文名"` | `ghost_blast_radius`：改代码前按中文界面词锁定最小修改文件集 |
+| `ghost-cto save "说明"` | `ghost_save_checkpoint`：原子快照备份 Git 代码与全部 SQLite（含 `-wal`）数据库 |
+| `ghost-cto rewind [编号]` | `ghost_rewind_checkpoint`：自动留急救备份后，1 秒将代码和数据库一起原子恢复 |
+| `ghost-cto doctor [目录]` | 21 项真机体检：核验各软件配置、Token 预算与跨目录子进程 MCP 双协议通信 |
+| `ghost-cto try` | 在本机临时沙箱跑完 1 秒全链路演练 |
 
 ---
 
 ## 📜 开源协议
 
-本项目基于 [MIT License](./LICENSE) 完全免费开源。献给每一位不懂代码、却依然勇敢用 AI 把脑海中的商业产品变成现实的创造者。
+本项目基于 [MIT License](./LICENSE) 完全免费开源。

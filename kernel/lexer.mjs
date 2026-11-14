@@ -32,7 +32,7 @@ function extractHtmlScriptsWithLinePreservation(html) {
 }
 
 /**
- * Unwrap embedded JS scripts stored inside `String.raw\`...\`` (e.g., SSR / static UI builders like 媒擎OS)
+ * Unwrap embedded JS scripts stored inside `String.raw\`...\`` (e.g., SSR / static UI builders)
  * into spaces at the outer wrapper while preserving exact byte offsets & 1-based line numbers!
  */
 function unwrapEmbeddedStringRawScripts(source) {
