@@ -274,7 +274,7 @@ function splitSqlColumns(body) {
 export function checkSqlColumnConsistency(ws, exportTable) {
   const tableCols = new Map();
 
-  function collectSchemaFromText(sqlSource) {
+  function collectCreateTables(sqlSource) {
     const createRe = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"'[]?([a-zA-Z0-9_]+)[`"'\]]?\s*\(([\s\S]*?)\)\s*;?/gi;
     let m;
     while ((m = createRe.exec(sqlSource)) !== null) {
@@ -287,25 +287,38 @@ export function checkSqlColumnConsistency(ws, exportTable) {
         if (cm) set.add(cm[1].toLowerCase());
       }
     }
+  }
 
+  function collectAlterAndHelperColumns(sqlSource) {
+    let m;
     const alterRe = /ALTER\s+TABLE\s+[`"'[]?([a-zA-Z0-9_]+)[`"'\]]?\s+ADD\s+(?:COLUMN\s+)?[`"'[]?([a-zA-Z0-9_]+)[`"'\]]?/gi;
     while ((m = alterRe.exec(sqlSource)) !== null) {
       const tbl = m[1].toLowerCase();
       const col = m[2].toLowerCase();
       if (tableCols.has(tbl)) tableCols.get(tbl).add(col);
     }
+
+    const helperRe = /\b(?:ensure|add|migrate|safeAdd|patch)Col(?:umn)?\s*\(\s*(?:[a-zA-Z0-9_$.]+\s*,\s*)?['"`]([a-zA-Z0-9_]+)['"`]\s*,\s*['"`]([a-zA-Z0-9_]+)['"`]/gi;
+    while ((m = helperRe.exec(sqlSource)) !== null) {
+      const tbl = m[1].toLowerCase();
+      const col = m[2].toLowerCase();
+      if (tableCols.has(tbl)) tableCols.get(tbl).add(col);
+    }
   }
 
+  const allSources = [];
   for (const info of exportTable.values()) {
-    collectSchemaFromText(info.lex.cleanCode);
+    allSources.push(info.lex.cleanCode);
   }
   for (const sf of ws.sqlFiles) {
     try {
-      collectSchemaFromText(fs.readFileSync(sf.absPath, 'utf8'));
+      allSources.push(fs.readFileSync(sf.absPath, 'utf8'));
     } catch (err) {
       if (process.env.GHOST_DEBUG) console.warn('[sql-check]', err.message);
     }
   }
+  for (const src of allSources) collectCreateTables(src);
+  for (const src of allSources) collectAlterAndHelperColumns(src);
 
   if (tableCols.size === 0) return [];
 

@@ -104,3 +104,57 @@ test('Universal Product Categories: Website, Multi-Module AI SaaS & Interactive 
     }
   }
 });
+
+test('Real-World Monorepo Regression: ensureColumn migrations, .vendor exclusion, and pnpm build commands', () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-monorepo-real-'));
+  try {
+    fs.writeFileSync(path.join(tmpDir, 'pnpm-workspace.yaml'), 'packages:\n  - "apps/*"\n', 'utf8');
+    fs.writeFileSync(path.join(tmpDir, 'package.json'), JSON.stringify({ name: 'pro-saas-suite', private: true }), 'utf8');
+
+    // 1. Third-party .vendor directory with 900-line file must be ignored (0 GOD_FILE penalty)
+    fs.mkdirSync(path.join(tmpDir, '.vendor', 'oss-tool'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, '.vendor', 'oss-tool', 'big.py'), 'x = 1\n'.repeat(900), 'utf8');
+
+    // 2. Schema using ensureColumn(db, table, col, def) incremental migration helper
+    fs.mkdirSync(path.join(tmpDir, 'apps', 'api', 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(tmpDir, 'apps', 'api', 'package.json'),
+      JSON.stringify({ name: '@suite/api', type: 'module' }),
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, 'apps', 'api', 'src', 'schema.mjs'),
+      [
+        `export function applySchema(db) {`,
+        `  db.exec("CREATE TABLE IF NOT EXISTS customer_profiles (id TEXT PRIMARY KEY, name TEXT NOT NULL)");`,
+        `  ensureColumn(db, 'customer_profiles', 'wechat_handle', "TEXT NOT NULL DEFAULT ''");`,
+        `}`,
+        `function ensureColumn(db, tbl, col, def) { db.exec(\`ALTER TABLE \${tbl} ADD COLUMN \${col} \${def}\`); }`
+      ].join('\n'),
+      'utf8'
+    );
+    fs.writeFileSync(
+      path.join(tmpDir, 'apps', 'api', 'src', 'repo.mjs'),
+      [
+        `import { applySchema } from './schema.mjs';`,
+        `export function saveCustomer(db) {`,
+        `  applySchema(db);`,
+        `  db.prepare("INSERT INTO customer_profiles (id, name, wechat_handle) VALUES (?, ?, ?)").run('1', 'Alice', 'wx_1');`,
+        `}`
+      ].join('\n'),
+      'utf8'
+    );
+
+    const ver = verifyWorkspaceCode(tmpDir);
+    assert.equal(ver.ok, true, `Expected ensureColumn migration to pass verify, got: ${ver.errorLines.join('\n')}`);
+
+    const ws = scanWorkspace(tmpDir);
+    assert.equal(
+      ws.codeFiles.some(f => f.relPath.startsWith('.vendor/')),
+      false,
+      '.vendor directory must be excluded from workspace scan'
+    );
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});

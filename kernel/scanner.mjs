@@ -21,6 +21,9 @@ export const IGNORED_DIRS = new Set([
   'build',
   'out',
   'coverage',
+  '.vendor',
+  'vendor',
+  'third_party',
   '__pycache__',
   '.venv',
   'venv'
@@ -206,6 +209,9 @@ function buildWorkspacePackageMap(absRoot, packageJsons) {
  */
 function detectStaticBuilds(absRoot, packageJsons, codeFiles) {
   const results = [];
+  const isPnpm =
+    fs.existsSync(path.join(absRoot, 'pnpm-workspace.yaml')) ||
+    fs.existsSync(path.join(absRoot, 'pnpm-lock.yaml'));
   for (const pkg of packageJsons) {
     const appDir = path.dirname(pkg.absPath);
     const relAppDir = path.relative(absRoot, appDir).replace(/\\/g, '/') || '.';
@@ -225,9 +231,17 @@ function detectStaticBuilds(absRoot, packageJsons, codeFiles) {
       }
 
       const deltaMs = newestSrc.mtimeMs - distStat.mtimeMs;
+      const defaultBuildCmd =
+        relAppDir === '.'
+          ? isPnpm
+            ? 'pnpm run build'
+            : 'npm run build'
+          : isPnpm
+          ? `pnpm --dir "${relAppDir}" run build`
+          : `npm --prefix "${relAppDir}" run build`;
       results.push({
         appDir: relAppDir,
-        buildCmd: relAppDir === '.' ? 'npm run build' : `npm --prefix "${relAppDir}" run build`,
+        buildCmd: defaultBuildCmd,
         distRelPath: path.relative(absRoot, distPath).replace(/\\/g, '/'),
         distMtimeMs: distStat.mtimeMs,
         newestSrcFile: newestSrc.relPath,

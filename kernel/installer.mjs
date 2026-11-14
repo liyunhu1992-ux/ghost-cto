@@ -107,6 +107,21 @@ export function installGhostCTO(targetRootDir, options = {}) {
   // 1. Vendor zero-dependency self-contained engine into `.vibe/engine/` (unless dogfooding GhostCTO on itself)
   let cliBinAbs = path.join(GHOST_PACKAGE_ROOT, 'bin', 'ghost-cto.mjs');
   if (!isSelfRepo) {
+    for (const legacyFile of [
+      '老板全景驾驶舱.html',
+      '项目真假与安全体检报告.html',
+      '打开实时驾驶舱.command',
+      '打开实时驾驶舱.bat'
+    ]) {
+      const legacyPath = path.join(absTarget, legacyFile);
+      if (fs.existsSync(legacyPath)) {
+        try {
+          fs.rmSync(legacyPath, { force: true });
+        } catch (err) {
+          if (process.env.GHOST_DEBUG) console.error('[ghost-cto:legacy-clean]', err.message);
+        }
+      }
+    }
     const vendoredEngineDir = path.join(absTarget, '.vibe', 'engine');
     copyDirRecursive(path.join(GHOST_PACKAGE_ROOT, 'kernel'), path.join(vendoredEngineDir, 'kernel'));
     copyDirRecursive(path.join(GHOST_PACKAGE_ROOT, 'bin'), path.join(vendoredEngineDir, 'bin'));
