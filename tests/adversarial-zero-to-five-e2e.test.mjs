@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { EventEmitter } from 'node:events';
+import { spawnSync } from 'node:child_process';
 import { createCleanBeginnerProject } from '../kernel/installer.mjs';
 import { bootstrapGoldenApp } from '../kernel/golden-scaffold.mjs';
 import { verifyWorkspaceCode } from '../kernel/code-verifier.mjs';
@@ -278,6 +279,139 @@ test('Adversarial E2E Part 2: Mode B (Commercial) Scrypt Password Hashing, 401/4
     assert.equal(verCleanAgain.ok, true);
     const auditFinal = runRealityAudit(scanWorkspace(created.projectDir));
     assert.equal(auditFinal.score, 100);
+  } finally {
+    fs.rmSync(parentTmp, { recursive: true, force: true });
+  }
+});
+
+test('Adversarial E2E Part 3: WeChat Mini-Program Dual-End Scaffold (100/100) & Step-2 Lossless SQLite Auto-Migration', async () => {
+  const parentTmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-adv-miniprogram-'));
+
+  try {
+    const created = createCleanBeginnerProject('宠物洗护预约小程序', parentTmp);
+    assert.ok(fs.existsSync(path.join(created.projectDir, '.claude/settings.json')), 'Must wire Claude Stop hook');
+
+    // Beginner mentions "小程序" -> auto-scaffolds both Web + native WeChat Mini-Program (`miniprogram/`)
+    const bootMp = bootstrapGoldenApp(created.projectDir, '宠物店洗澡美容预约小程序', { audience: 'commercial' });
+    assert.equal(bootMp.scaffolded, true);
+    assert.equal(bootMp.miniProgram, true);
+    assert.equal(bootMp.score, 100, `Mini-Program + Commercial scaffold must achieve 100/100, got ${bootMp.score}`);
+
+    const projCfg = JSON.parse(fs.readFileSync(path.join(created.projectDir, 'miniprogram/project.config.json'), 'utf8'));
+    assert.equal(projCfg.appid, 'touristappid', 'Must default to free touristappid so beginners pay 0 RMB');
+    assert.equal(projCfg.setting.urlCheck, false);
+    assert.ok(fs.existsSync(path.join(created.projectDir, 'miniprogram/pages/index/index.wxml')));
+    assert.ok(fs.existsSync(path.join(created.projectDir, 'miniprogram/pages/index/index.js')));
+
+    const verMp = verifyWorkspaceCode(created.projectDir);
+    assert.equal(verMp.ok, true, `Mini-Program verify failed: ${verMp.errorLines.join('; ')}`);
+
+    const auditMp = runRealityAudit(scanWorkspace(created.projectDir));
+    assert.equal(auditMp.lineage.zombieFiles.length, 0, 'Mini-Program files must have 0 false zombie warnings');
+    const mpChains = auditMp.lineage.chains.filter(c => String(c.frontend).startsWith('miniprogram/'));
+    assert.ok(mpChains.length >= 5, `Expected >= 5 traced wx.request chains from miniprogram, got ${mpChains.length}`);
+    assert.ok(mpChains.every(c => c.status === 'REAL_DB_WRITE' || c.status === 'REAL_DB_READ' || c.status === 'OK_STATELESS'));
+
+    // Simulate Step-2 Beginner Iteration: adding new columns (`wechat` NOT NULL + `pet_breed`) to an ALREADY POPULATED SQLite DB!
+    const srvMod = await import(`file://${path.join(created.projectDir, 'src/server.mjs')}`);
+    const dbMod = await import(`file://${path.join(created.projectDir, 'src/db.mjs')}`);
+    assert.ok(srvMod.server);
+
+    const createdRow = dbMod.createRecord({ title: '柯基豆豆 · 精修洗护', note: '13612345678', amount: 168 });
+    assert.ok(createdRow.id >= 4);
+
+    if (dbMod.sqliteDb) {
+      const step2SchemaSql = `
+        CREATE TABLE IF NOT EXISTS customer_records (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          note TEXT DEFAULT '',
+          amount REAL DEFAULT 0,
+          wechat TEXT NOT NULL,
+          pet_breed TEXT DEFAULT '通用犬猫',
+          status TEXT DEFAULT 'pending',
+          updated_at TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        );
+      `;
+      const migratedCols = dbMod.autoMigrateSqliteSchema(dbMod.sqliteDb, step2SchemaSql);
+      assert.deepEqual(migratedCols, ['customer_records.wechat', 'customer_records.pet_breed']);
+
+      // Verify existing customer rows survived intact AND new columns accept INSERT immediately without crashing!
+      const now = new Date().toISOString();
+      dbMod.sqliteDb
+        .prepare(
+          'INSERT INTO customer_records (title, note, amount, wechat, pet_breed, status, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        )
+        .run('布偶猫雪球 · 除毛SPA', '13987654321', 228, 'wx_snowball88', '布偶猫', 'pending', now, now);
+
+      const allRows = dbMod.listRecords();
+      assert.ok(allRows.some(r => r.title.includes('柯基豆豆')), 'Existing Step-1 customer row MUST NOT be lost!');
+      const newCat = allRows.find(r => r.title.includes('布偶猫雪球'));
+      assert.equal(newCat.wechat, 'wx_snowball88');
+      assert.equal(newCat.pet_breed, '布偶猫');
+    }
+  } finally {
+    fs.rmSync(parentTmp, { recursive: true, force: true });
+  }
+});
+
+test('Adversarial E2E Part 4: Deep Linker/Package/SQL Column Verifier & Hard IDE Stop-Hook Self-Repair Gate', () => {
+  const parentTmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-adv-deep-verifier-'));
+
+  try {
+    const created = createCleanBeginnerProject('进销存记账台', parentTmp);
+    bootstrapGoldenApp(created.projectDir, '茶叶店进销存与记账', { audience: 'self' });
+
+    const serverPath = path.join(created.projectDir, 'src/server.mjs');
+    const origServer = fs.readFileSync(serverPath, 'utf8');
+
+    // 1. Inject 4 classic AI hallucinations that `node --check` completely misses:
+    //    - Uninstalled npm package (`import express from 'express'`)
+    //    - Missing local module (`import './missing-util.mjs'`)
+    //    - Non-existent named export (`import { nonExistentHelper } from './db.mjs'`)
+    //    - SQL column typo (`INSERT INTO ledger_entries (title, hallucinated_col) VALUES (?, ?)`)
+    const sabotaged = [
+      `import express from 'express';`,
+      `import './missing-util.mjs';`,
+      `import { nonExistentHelper } from './db.mjs';`,
+      origServer,
+      `function badSqlWrite(db) { db.prepare("INSERT INTO ledger_entries (title, hallucinated_col) VALUES (?, ?)").run('a', 'b'); }`
+    ].join('\n');
+    fs.writeFileSync(serverPath, sabotaged, 'utf8');
+
+    const ver = verifyWorkspaceCode(created.projectDir);
+    assert.equal(ver.ok, false);
+    const kinds = new Set(ver.syntaxErrors.map(e => e.kind));
+    assert.ok(kinds.has('UNINSTALLED_PACKAGE'), `Must catch uninstalled npm package, got ${[...kinds]}`);
+    assert.ok(kinds.has('BROKEN_LOCAL_IMPORT'), `Must catch missing local import, got ${[...kinds]}`);
+    assert.ok(kinds.has('MISSING_NAMED_EXPORT'), `Must catch missing named export, got ${[...kinds]}`);
+    assert.ok(kinds.has('SQL_COLUMN_MISMATCH'), `Must catch SQL column mismatch, got ${[...kinds]}`);
+
+    // 2. Execute `.vibe/ghost-hook-check.mjs` as a real IDE Stop-hook subprocess -> MUST exit code 2 on first broken turn!
+    const hookScript = path.join(created.projectDir, '.vibe/ghost-hook-check.mjs');
+    const hookRun1 = spawnSync(process.execPath, [hookScript], {
+      cwd: created.projectDir,
+      encoding: 'utf8'
+    });
+    assert.equal(hookRun1.status, 2, 'Stop hook MUST exit 2 to block AI from finishing with broken code');
+    assert.ok(hookRun1.stderr.includes('UNINSTALLED_PACKAGE') || hookRun1.stderr.includes('express'));
+
+    // 3. Anti-infinite-loop guard: running Stop hook again on the exact same untouched fingerprint MUST exit 0!
+    const hookRun2 = spawnSync(process.execPath, [hookScript], {
+      cwd: created.projectDir,
+      encoding: 'utf8'
+    });
+    assert.equal(hookRun2.status, 0, 'Stop hook MUST NOT trap user in an infinite loop on identical fingerprint');
+
+    // 4. Restore clean server -> Stop hook exits 0 and verify returns PASS!
+    fs.writeFileSync(serverPath, origServer, 'utf8');
+    const hookRun3 = spawnSync(process.execPath, [hookScript], {
+      cwd: created.projectDir,
+      encoding: 'utf8'
+    });
+    assert.equal(hookRun3.status, 0);
+    assert.equal(verifyWorkspaceCode(created.projectDir).ok, true);
   } finally {
     fs.rmSync(parentTmp, { recursive: true, force: true });
   }

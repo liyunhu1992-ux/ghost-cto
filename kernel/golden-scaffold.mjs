@@ -6,6 +6,7 @@ import { runRealityAudit } from './reality-audit.mjs';
 import { saveCheckpoint } from './time-capsule.mjs';
 import { writeMemoryCapsule } from './memory-capsule.mjs';
 import { generateBossDashboard, generateSelfHealingLaunchers } from './boss-dashboard.mjs';
+import { writeMiniProgramScaffold } from './miniprogram-scaffold.mjs';
 
 function buildGitignore() {
   return [
@@ -149,6 +150,86 @@ const JSON_FALLBACK_FILE = path.join(DATA_DIR, 'app-records.json');
 const SEED_ITEMS = ${seedJson};
 const LABELS = ${labelsJson};
 
+function splitSqlColumns(body) {
+  const parts = [];
+  let cur = '';
+  let depth = 0;
+  let inQuote = '';
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (inQuote) {
+      cur += ch;
+      if (ch === inQuote && body[i - 1] !== '\\\\') inQuote = '';
+      continue;
+    }
+    if (ch === "'" || ch === '"') {
+      inQuote = ch;
+      cur += ch;
+    } else if (ch === '(') {
+      depth++;
+      cur += ch;
+    } else if (ch === ')') {
+      depth = Math.max(0, depth - 1);
+      cur += ch;
+    } else if (ch === ',' && depth === 0) {
+      if (cur.trim()) parts.push(cur.trim());
+      cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.trim()) parts.push(cur.trim());
+  return parts;
+}
+
+/**
+ * Automatically migrate existing SQLite tables whenever AI adds new columns to SCHEMA_SQL in Step 2-4!
+ * Prevents "SqliteError: table X has no column named Y" without EVER dropping existing user records.
+ */
+export function autoMigrateSqliteSchema(db, createSql) {
+  if (!db) return [];
+  const migrated = [];
+  const blockRe = /CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?[\`"'\\[]?([a-zA-Z0-9_]+)[\`"'\\]]?\\s*\\(([\\s\\S]*?)\\)\\s*;?/gi;
+  let m;
+  while ((m = blockRe.exec(createSql)) !== null) {
+    const tbl = m[1];
+    const body = m[2];
+    const existingCols = new Set(
+      db.prepare(\`PRAGMA table_info(\${tbl})\`).all().map(c => String(c.name).toLowerCase())
+    );
+    for (const colLine of splitSqlColumns(body)) {
+      if (!colLine || /^(?:PRIMARY|FOREIGN|UNIQUE|CHECK|CONSTRAINT)\\b/i.test(colLine)) continue;
+      const colMatch = colLine.match(/^[\`"'\\[]?([a-zA-Z0-9_]+)[\`"'\\]]?\\s+([\\s\\S]+)$/);
+      if (!colMatch) continue;
+      const colName = colMatch[1];
+      if (existingCols.has(colName.toLowerCase())) continue;
+      let safeSpec = colMatch[2]
+        .replace(/\\bPRIMARY\\s+KEY(?:\\s+AUTOINCREMENT)?\\b/gi, '')
+        .replace(/\\bUNIQUE\\b/gi, '')
+        .trim();
+      if (/\\bNOT\\s+NULL\\b/i.test(safeSpec) && !/\\bDEFAULT\\b/i.test(safeSpec)) {
+        safeSpec += /REAL|INT|NUMERIC|FLOAT|DOUBLE|DECIMAL/i.test(safeSpec) ? ' DEFAULT 0' : " DEFAULT ''";
+      }
+      db.exec(\`ALTER TABLE \${tbl} ADD COLUMN \${colName} \${safeSpec}\`);
+      existingCols.add(colName.toLowerCase());
+      migrated.push(\`\${tbl}.\${colName}\`);
+    }
+  }
+  return migrated;
+}
+
+export const SCHEMA_SQL = \`
+  CREATE TABLE IF NOT EXISTS ${table} (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    note TEXT DEFAULT '',
+    amount REAL DEFAULT 0,
+    status TEXT DEFAULT 'pending',
+    updated_at TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+\`;
+
 export let sqliteDb = null;
 try {
   const sqliteMod = await import('node:sqlite');
@@ -156,17 +237,8 @@ try {
     sqliteDb = new sqliteMod.DatabaseSync(DB_FILE);
     sqliteDb.exec('PRAGMA journal_mode = WAL;');
     sqliteDb.exec('PRAGMA busy_timeout = 5000;');
-    sqliteDb.exec(\`
-      CREATE TABLE IF NOT EXISTS ${table} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        note TEXT DEFAULT '',
-        amount REAL DEFAULT 0,
-        status TEXT DEFAULT 'pending',
-        updated_at TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      );
-    \`);
+    sqliteDb.exec(SCHEMA_SQL);
+    autoMigrateSqliteSchema(sqliteDb, SCHEMA_SQL);
     const countRow = sqliteDb.prepare('SELECT COUNT(*) AS cnt FROM ${table}').get();
     if (!countRow || Number(countRow.cnt) === 0) {
       const insertSeed = sqliteDb.prepare(
@@ -349,7 +421,7 @@ function buildAuthMjs() {
   return `import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { sqliteDb, DATA_DIR } from './db.mjs';
+import { sqliteDb, DATA_DIR, autoMigrateSqliteSchema } from './db.mjs';
 
 const AUTH_FALLBACK_FILE = path.join(DATA_DIR, 'auth-store.json');
 const SESSION_COOKIE = 'vibe_sid';
@@ -373,31 +445,34 @@ export function verifyPassword(plain, storedHash) {
   return crypto.timingSafeEqual(actualBuf, expectedBuf);
 }
 
+export const AUTH_SCHEMA_SQL = \`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    display_name TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'staff',
+    password_hash TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor TEXT NOT NULL,
+    action TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+\`;
+
 if (sqliteDb) {
-  sqliteDb.exec(\`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL UNIQUE,
-      display_name TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'staff',
-      password_hash TEXT NOT NULL,
-      active INTEGER NOT NULL DEFAULT 1,
-      created_at TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS sessions (
-      token TEXT PRIMARY KEY,
-      user_id INTEGER NOT NULL,
-      expires_at TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS audit_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      actor TEXT NOT NULL,
-      action TEXT NOT NULL,
-      detail TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    );
-  \`);
+  sqliteDb.exec(AUTH_SCHEMA_SQL);
+  autoMigrateSqliteSchema(sqliteDb, AUTH_SCHEMA_SQL);
   const userCnt = sqliteDb.prepare('SELECT COUNT(*) AS cnt FROM users').get();
   if (!userCnt || Number(userCnt.cnt) === 0) {
     const now = new Date().toISOString();
@@ -869,6 +944,9 @@ function sendJson(res, status, payload, extraHeaders = {}) {
     'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'SAMEORIGIN',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     ...extraHeaders
   });
   res.end(JSON.stringify(payload));
@@ -906,8 +984,22 @@ export const server = http.createServer(async (req, res) => {
   const pathname = urlObj.pathname;
 
   try {
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
+      });
+      return res.end();
+    }
+
     if (pathname === '/api/health' && req.method === 'GET') {
-      return sendJson(res, 200, { ok: true, app: ${JSON.stringify(bp.appName)}, commercialAuth: ${isCommercial} });
+      return sendJson(res, 200, {
+        ok: true,
+        app: ${JSON.stringify(bp.appName)},
+        commercialAuth: ${isCommercial},
+        miniProgram: ${Boolean(bp.includeMiniProgram)}
+      });
     }
 ${authRoutesBlock}${recordRoutesBlock}
     const safeRel = pathname === '/' ? 'index.html' : pathname.replace(/^\\/+/, '');
@@ -1631,13 +1723,18 @@ export function bootstrapGoldenApp(targetRootDir, rawFragment = '', prefs = {}) 
   fs.writeFileSync(path.join(absRoot, 'public', 'app.js'), buildAppJs(bp), 'utf8');
   fs.writeFileSync(path.join(absRoot, 'public', 'index.html'), buildIndexHtml(bp), 'utf8');
 
+  let miniProgramDir = null;
+  if (bp.includeMiniProgram) {
+    miniProgramDir = writeMiniProgramScaffold(absRoot, bp);
+  }
+
   const ws = scanWorkspace(absRoot);
   const audit = runRealityAudit(ws);
   writeMemoryCapsule(ws, audit);
   generateSelfHealingLaunchers(ws);
   const cp = saveCheckpoint(
     absRoot,
-    `零出错${bp.needPassword ? '商用多账号' : '轻享'}底座已就绪：${bp.appName}`
+    `零出错${bp.needPassword ? '商用多账号' : '轻享'}${bp.includeMiniProgram ? '+小程序双端' : ''}底座已就绪：${bp.appName}`
   );
   const wsAfter = scanWorkspace(absRoot);
   const auditAfter = runRealityAudit(wsAfter);
@@ -1646,10 +1743,12 @@ export function bootstrapGoldenApp(targetRootDir, rawFragment = '', prefs = {}) 
   return {
     scaffolded: true,
     commercialAuth: bp.needPassword,
+    miniProgram: bp.includeMiniProgram,
+    miniProgramDir,
     blueprint: bp,
     score: auditAfter.score,
     checkpointId: cp.id,
     startPort: 3090,
-    message: `🎉 已为您铺好【${bp.appName}】${bp.needPassword ? '（商用加密登录+员工分权版）' : '（个人电脑免登录版）'}（健康分 ${auditAfter.score}/100 🟢）！`
+    message: `🎉 已为您铺好【${bp.appName}】${bp.needPassword ? '（商用加密登录+员工分权版）' : '（个人电脑免登录版）'}${bp.includeMiniProgram ? ' + 微信小程序端 (miniprogram/)' : ''}（健康分 ${auditAfter.score}/100 🟢）！`
   };
 }

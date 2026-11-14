@@ -158,7 +158,8 @@ export function createCockpitHttpHandler(targetRootDir) {
         const body = await readJsonBody(req);
         const bp = saveIdeaBlueprint(absRoot, body.idea || '', {
           audience: body.audience || 'self',
-          device: body.device || 'both'
+          device: body.device || 'both',
+          platform: body.platform || ''
         });
         return sendJson(res, 200, { ok: true, blueprint: bp });
       }
@@ -167,7 +168,8 @@ export function createCockpitHttpHandler(targetRootDir) {
         const body = await readJsonBody(req);
         const out = bootstrapGoldenApp(absRoot, body.idea || '', {
           audience: body.audience || 'self',
-          device: body.device || 'both'
+          device: body.device || 'both',
+          platform: body.platform || ''
         });
         return sendJson(res, 200, { ok: true, ...out });
       }

@@ -5,7 +5,7 @@ const ARCHETYPES = [
   {
     id: 'shop_crm',
     label: '🏪 门店会员 / 客户预约 / 次卡储值管理',
-    matchRe: /店|美甲|美容|理发|宠物|健身|瑜伽|客户|会员|次卡|储值|预约|排班|订单|学员|课程|售后/,
+    matchRe: /门店|美甲|美容|理发|宠物|健身|瑜伽|客户|会员|次卡|储值|预约|排班|订单|学员|课程|售后/,
     defaultName: '门店客户与预约管家',
     tableName: 'customer_records',
     titleLabel: '客户姓名 / 预约项目',
@@ -162,6 +162,24 @@ export function normalizeAudienceMode(rawAudience = 'self', needPasswordFlag = f
   return 'self';
 }
 
+export function normalizePlatformMode(rawPlatform = '', rawFragment = '', rawAudience = '') {
+  const p = String(rawPlatform || '').trim().toLowerCase();
+  const aud = String(rawAudience || '').trim().toLowerCase();
+  if (
+    p === 'miniprogram' ||
+    p === 'mp' ||
+    p === 'wechat' ||
+    p === 'wx' ||
+    p === 'both' ||
+    aud === 'c' ||
+    aud === 'miniprogram' ||
+    /小程序|微信端|weapp/i.test(String(rawFragment || ''))
+  ) {
+    return 'miniprogram';
+  }
+  return 'web';
+}
+
 /**
  * Turn even a messy 3-word beginner fragment into a crystal-clear, zero-jargon 0-to-5 product blueprint
  * + SQLite schema + pro-dev-team standard checklist at 0 LLM tokens.
@@ -175,6 +193,8 @@ export function incubateIdea(rawFragment = '', prefs = {}) {
   const needPassword = normalizedMode === 'commercial';
   const audience = prefs.audience || normalizedMode;
   const device = prefs.device || 'both';
+  const platform = normalizePlatformMode(prefs.platform, text, prefs.audience);
+  const includeMiniProgram = Boolean(prefs.miniprogram) || platform === 'miniprogram';
 
   const audienceDesc = needPassword
     ? '方案 B · 商用/多账号协作版（内置 scrypt 加密登录、店长管理员/员工权限隔离、手机号脱敏、操作审计日志与 Docker 部署包）'
@@ -182,12 +202,13 @@ export function incubateIdea(rawFragment = '', prefs = {}) {
     ? '公开访问收集版（清爽零门槛提交 + 本地真落库 + Excel 导出）'
     : '方案 A · 个人电脑日常版（免登录双击即用 + 真落库 + 防误删 + Excel 导出）';
 
-  const deviceDesc =
-    device === 'mobile'
-      ? '优先适配手机竖屏点按体验'
-      : device === 'desktop'
-      ? '优先适配电脑宽屏高效操作'
-      : '电脑宽屏与手机竖屏自动响应式适配';
+  const platformDesc = includeMiniProgram
+    ? '微信小程序原生端 (miniprogram/) + 响应式网页管理台双端联动'
+    : device === 'mobile'
+    ? '优先适配手机竖屏点按体验'
+    : device === 'desktop'
+    ? '优先适配电脑宽屏高效操作'
+    : '电脑宽屏与手机竖屏自动响应式适配';
 
   const commercialFeatures = needPassword
     ? [
@@ -198,7 +219,13 @@ export function incubateIdea(rawFragment = '', prefs = {}) {
       ]
     : [];
 
-  const allCoreFeatures = [...matched.coreFeatures, ...commercialFeatures];
+  const miniProgramFeatures = includeMiniProgram
+    ? [
+        '原生微信小程序客户端（miniprogram/ 目录已配齐 project.config.json 免认证测试号配置、WXML/WXSS/JS，通过真实 wx.request 直连 SQLite 后台，零费用直接导入微信开发者工具运行）'
+      ]
+    : [];
+
+  const allCoreFeatures = [...matched.coreFeatures, ...commercialFeatures, ...miniProgramFeatures];
 
   const cutList = [
     '第一版先不接需要营业执照与商户证书的真实微信支付/支付宝收款接口（先把业务台账与核心闭环 100% 跑稳，绝不画假支付按钮糊弄人）',
@@ -207,20 +234,21 @@ export function incubateIdea(rawFragment = '', prefs = {}) {
   ];
 
   const stepPlan = [
-    '第 0 步（需求收敛与定性）：砍掉容易烂尾的伪需求，明确「方案 A 自用免登录」或「方案 B 商用带账号权限」。',
-    `第 1 步（100 分专业底座已自动生成）：真实 SQLite(WAL) 落库、防连击、防误删、在线编辑、Excel 导出${needPassword ? '、scrypt 加密登录与管理员/员工权限隔离' : ''}已一次配齐。`,
-    `第 2 步（按你的业务微调专属字段）：围绕「${text || appName}」小步调整字段名称、分类选项或页面配色（每次改动自动存档 + 锁定 <=3 个文件）。`,
+    '第 0 步（需求收敛与定性）：砍掉容易烂尾的伪需求，明确自用免登录、多账号商用或微信小程序双端形态。',
+    `第 1 步（100 分专业底座已自动生成）：真实 SQLite(WAL) 落库、自动表结构无损升级、防连击、防误删、在线编辑、Excel 导出${needPassword ? '、scrypt 加密登录与员工分权' : ''}${includeMiniProgram ? '、原生微信小程序客户端' : ''}已一次配齐。`,
+    `第 2 步（按你的业务微调专属字段）：围绕「${text || appName}」小步调整字段名称、分类选项或页面配色（内置 autoMigrateSqliteSchema 自动为老数据库补齐新列，绝不崩表丢数据）。`,
     '第 3 步（补齐个性化业务规则）：按需增加专属统计卡片、打印排版或业务校验逻辑，严禁出现空按钮或假提示。',
     '第 4 步（异常与后悔药演练）：任何改乱或报错随时一键秒退回上一版代码+数据库，绝不推倒重开新文件夹。',
-    `第 5 步（验收交付）：跑通 ghost-cto verify 与 audit（0 语法错、0 假按钮、0 裸奔接口、0 密钥泄露）后正式投入日常或商用部署。`
+    `第 5 步（验收交付）：跑通 ghost-cto verify 与 audit（0 语法错、0 缺包断链、0 假按钮、0 裸奔接口、0 密钥泄露）后正式投入日常或商用部署。`
   ];
 
   const clarifyingQuestions = [
     {
-      q: '1. 这个作品平时主要是怎么用？（回复 A 或 B 即可）',
+      q: '1. 这个作品平时主要是怎么用？（回复 A / B / C 即可）',
       options: [
-        'A. 我自己电脑上日常用（免登录最省心，打开就能记账管理）',
-        'B. 店员团队协作或发给客户用的商用版（带加密账号登录、管理员/员工权限与操作日志）'
+        'A. 我自己电脑/手机浏览器日常用（免登录最省心，双击打开就能记账管理）',
+        'B. 店员团队协作或正式商用的多账号版（带加密账号登录、店长/员工权限与操作日志）',
+        'C. 需要微信小程序端 + 后台双端联动（额外生成可直接导入微信开发者工具的 miniprogram 原生代码）'
       ]
     },
     {
@@ -239,26 +267,38 @@ export function incubateIdea(rawFragment = '', prefs = {}) {
 - \`audit_logs\`：\`id\`, \`actor\`, \`action\`, \`detail\`, \`created_at\`\n`
     : '';
 
+  const modularFilesList = [
+    '`src/db.mjs`',
+    ...(needPassword ? ['`src/auth.mjs`'] : []),
+    '`src/server.mjs`',
+    '`public/index.html`',
+    '`public/app.js`',
+    '`public/styles.css`',
+    ...(includeMiniProgram ? ['`miniprogram/pages/index/index.wxml`', '`miniprogram/pages/index/index.js`'] : [])
+  ].join(', ');
+
   const blueprintMarkdown = `# 🌱 产品 0→5 施工蓝图（.vibe/blueprint.md）
 > 由 GhostCTO（影子 CTO）自动生成，供豆包 / Trae / WorkBuddy / CodeBuddy / Antigravity / Cursor / Claude Code 严格遵守。
 
 - **作品名称**：${appName}
 - **原始想法**：${text || '做一个清爽稳定、能真实保存数据的业务管理工具'}
 - **赛道模型**：${matched.label}
-- **工程模式**：${audienceDesc} ｜ ${deviceDesc}
+- **工程模式**：${audienceDesc} ｜ ${platformDesc}
 - **账号权限要求**：${needPassword ? '必须开启 scrypt 加密登录与 /api/admin/* 管理员鉴权（严禁明文密码与裸奔后台）' : '个人本地免登录模式'}
+- **小程序端要求**：${includeMiniProgram ? '已开启微信小程序双端模式（修改接口或字段时须同步更新 miniprogram/pages/index/）' : '标准响应式 Web 模式'}
 
 ## 一、第一版已配齐的专业团队级功能清单
 ${allCoreFeatures.map((f, i) => `${i + 1}. ${f}`).join('\n')}
 
 ## 二、真实 SQLite 数据库表契约（严禁改用内存假数组！）
-### 核心业务表：\`${matched.tableName}\`
+### 核心业务表：\`${matched.tableName}\`（内置 \`autoMigrateSqliteSchema\` 自动无损加列）
 - \`id\`：自增主键
 - \`title\`：${matched.titleLabel}（必填文本）
 - \`note\`：${matched.subLabel}（选填文本${needPassword ? '，员工视角自动对手机号脱敏' : ''}）
 - \`amount\`：${matched.amountLabel}（数值，默认 0）
 - \`status\`：状态（\`pending\` = ${matched.statusPendingText}，\`done\` = ${matched.statusActiveText}）
 - \`updated_at\` / \`created_at\`：更新时间与创建时间
+> 💡 **二次加字段铁律**：后续增加新字段时，只需在 \`src/db.mjs\` 的 \`SCHEMA_SQL\` (\`CREATE TABLE IF NOT EXISTS ...\`) 中添加列定义，启动时 \`autoMigrateSqliteSchema\` 会自动对已有 \`data/app.sqlite\` 执行 \`ALTER TABLE ADD COLUMN\` 无损升级，严禁删库丢数据，且 \`INSERT\`/\`UPDATE\` 列名必须与 \`SCHEMA_SQL\` 完全一致！
 ${authSchemaSection}
 ## 三、防烂尾「第一版暂缓清单」（防止贪多写出一堆假按钮）
 ${cutList.map(c => `- ⛔ ${c}`).join('\n')}
@@ -266,16 +306,16 @@ ${cutList.map(c => `- ⛔ ${c}`).join('\n')}
 ## 四、从 0 到 5 渐进式交付路线
 ${stepPlan.map(s => `- ${s}`).join('\n')}
 
-## 五、AI 施工硬门禁（违者 verify 直接拦截）
-1. 在现有模块化文件（\`src/db.mjs\`${needPassword ? ', `src/auth.mjs`' : ''}, \`src/server.mjs\`, \`public/index.html\`, \`public/app.js\`, \`public/styles.css\`）上平滑演进；单文件严禁超过 500 行，严禁引入未安装的外部 npm 包。
+## 五、AI 施工硬门禁（违者 verify / Stop Hook 直接拦截）
+1. 在现有模块化文件（${modularFilesList}）上平滑演进；单文件严禁超过 500 行，严禁引入未安装的外部 npm 包。
 2. 必须保留专业细节：提交按钮防连击锁、删除二次确认、空状态提示、UTF-8 BOM Excel 导出${needPassword ? '、管理员与员工权限边界' : ''}。
 3. 每次改完代码后，必须执行 \`node .vibe/engine/bin/ghost-cto.mjs verify\`，确认 **GHOST_VERIFY_PASS** 后才能交差！
 `;
 
   const aiStep1Prompt = [
     `请先读取项目里的 .vibe/blueprint.md 施工蓝图。`,
-    `我的需求是：「${text || appName}」（${audienceDesc}）。`,
-    `请严格在现有零出错 SQLite 模块化底座上定制界面与字段，每次修改前先运行存档与影响分析，改完必须运行 \`node .vibe/engine/bin/ghost-cto.mjs verify\` 通过后再让我刷新网页验收。`
+    `我的需求是：「${text || appName}」（${audienceDesc}，${platformDesc}）。`,
+    `请严格在现有零出错 SQLite 模块化底座上定制界面与字段，每次修改前先运行存档与影响分析，改完必须运行 \`node .vibe/engine/bin/ghost-cto.mjs verify\` 通过后再让我刷新验收。`
   ].join('\n');
 
   return {
@@ -287,7 +327,9 @@ ${stepPlan.map(s => `- ${s}`).join('\n')}
     normalizedMode,
     audienceDesc,
     device,
-    deviceDesc,
+    deviceDesc: platformDesc,
+    platform,
+    includeMiniProgram,
     needPassword,
     tableName: matched.tableName,
     labels: {

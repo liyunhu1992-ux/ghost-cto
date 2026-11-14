@@ -591,7 +591,7 @@ function extractFrontendCalls(fileDataMap) {
       const isDirectCall = /(?:fetch|useFetch|useSWR|[A-Za-z0-9_$]*(?:Fetch|Api|Post|Put|Patch|Delete|Request|Client)|axios|request|http|sendBeacon|client)\s*(?:\.[a-zA-Z]+)?\s*\(\s*$/i.test(
         ctxBefore
       );
-      const isMiniProgramUrlProp = /(?:wx|uni|Taro|my|tt)\.request\s*\(\s*\{[\s\S]{0,90}?\burl\s*:\s*$/i.test(ctxBefore);
+      const isMiniProgramUrlProp = /(?:wx|uni|Taro|my|tt)\.request\s*\(\s*\{[\s\S]{0,110}?\burl\s*:\s*(?:[A-Za-z0-9_$.]+\s*\+\s*)?$/i.test(ctxBefore);
       if (!isDirectCall && !isMiniProgramUrlProp) {
         continue;
       }
@@ -618,11 +618,11 @@ function extractFrontendCalls(fileDataMap) {
       const methodMatch = ctxAfter.match(/method\s*:\s*['"]([A-Za-z]+)['"]/i);
       if (methodMatch) {
         method = methodMatch[1].toUpperCase();
-      } else if (/sendBeacon|\.(?:post)\s*\(\s*$/i.test(ctxBefore) || /apiPost\s*\(\s*$/i.test(ctxBefore)) {
+      } else if (/sendBeacon|\.(?:post)\s*\(\s*$/i.test(ctxBefore) || /[A-Za-z0-9_$]*Post\s*\(\s*$/i.test(ctxBefore)) {
         method = 'POST';
-      } else if (/\.(?:put)\s*\(\s*$/i.test(ctxBefore)) {
+      } else if (/\.(?:put)\s*\(\s*$/i.test(ctxBefore) || /[A-Za-z0-9_$]*Put\s*\(\s*$/i.test(ctxBefore)) {
         method = 'PUT';
-      } else if (/\.(?:delete)\s*\(\s*$/i.test(ctxBefore)) {
+      } else if (/\.(?:delete)\s*\(\s*$/i.test(ctxBefore) || /[A-Za-z0-9_$]*Delete\s*\(\s*$/i.test(ctxBefore)) {
         method = 'DELETE';
       }
 

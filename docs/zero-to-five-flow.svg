@@ -3,8 +3,8 @@
   <rect x="0" y="0" width="980" height="430" rx="18" fill="#F8F7F4" stroke="#E5E4DF" stroke-width="2"/>
 
   <!-- Header -->
-  <text x="490" y="40" text-anchor="middle" font-size="20" font-weight="700" fill="#18181B">GhostCTO（影子 CTO）：带零基础小白在聊天框里从 0 到 5 做出真软件</text>
-  <text x="490" y="64" text-anchor="middle" font-size="13" fill="#64646E">不用背提示词 · 不用懂英文术语 · 全程在 豆包 / Trae / WorkBuddy / Cursor 聊天框说大白话完成</text>
+  <text x="490" y="40" text-anchor="middle" font-size="20" font-weight="700" fill="#18181B">GhostCTO（影子 CTO）：带零基础小白在聊天框从 0 到 5 免费做出真软件</text>
+  <text x="490" y="64" text-anchor="middle" font-size="13" fill="#64646E">100% 免费开源 · 不用背提示词 · 支持自用网页 / 多账号商用系统 / 微信小程序双端</text>
 
   <!-- ==================== COLUMN 1: STEP 0 -> 1 ==================== -->
   <rect x="28" y="88" width="292" height="278" rx="14" fill="#FFFFFF" stroke="#D4D4D8" stroke-width="1.5"/>
@@ -12,20 +12,20 @@
   <text x="128" y="123" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">第 0→1 步 · 定性反问与铺底座</text>
 
   <!-- User Chat Bubble -->
-  <rect x="46" y="146" width="256" height="44" rx="10" fill="#EFF6FF" stroke="#BFDBFE"/>
-  <text x="58" y="165" font-size="11.5" font-weight="700" fill="#1D4ED8">小白只说一句大白话：</text>
-  <text x="58" y="182" font-size="12" fill="#1E3A8A">“我想做个美甲店会员次卡管理”</text>
+  <rect x="46" y="144" width="256" height="42" rx="10" fill="#EFF6FF" stroke="#BFDBFE"/>
+  <text x="58" y="162" font-size="11.5" font-weight="700" fill="#1D4ED8">小白只说一句零碎大白话：</text>
+  <text x="58" y="179" font-size="12" fill="#1E3A8A">“我想做个宠物洗护会员预约小程序”</text>
 
   <!-- AI Coach Reply -->
-  <rect x="46" y="200" width="256" height="84" rx="10" fill="#F8F7F4" stroke="#E5E4DF"/>
-  <text x="58" y="220" font-size="11.5" font-weight="700" fill="#18181B">🛡️ 影子 CTO 自动拦贪多 &amp; 问选择题：</text>
-  <text x="58" y="239" font-size="11.5" fill="#3F3F46">• A. 自己电脑日常用（免登录秒开）</text>
-  <text x="58" y="257" font-size="11.5" fill="#3F3F46">• B. 商用多账号版（scrypt加密登录</text>
-  <text x="68" y="274" font-size="11.5" fill="#3F3F46">+ 店长/员工权限隔离 + 手机号脱敏）</text>
+  <rect x="46" y="196" width="256" height="90" rx="10" fill="#F8F7F4" stroke="#E5E4DF"/>
+  <text x="58" y="215" font-size="11.5" font-weight="700" fill="#18181B">🛡️ 影子 CTO 自动拦贪多 &amp; 问选择题：</text>
+  <text x="58" y="234" font-size="11.2" fill="#3F3F46">• A. 个人电脑/手机网页版（免登录秒开）</text>
+  <text x="58" y="252" font-size="11.2" fill="#3F3F46">• B. 商用多账号版（scrypt加密+员工分权）</text>
+  <text x="58" y="270" font-size="11.2" fill="#3F3F46">• C. 微信小程序 + 后台双端（免费预览）</text>
 
   <!-- Step 1 Result -->
   <rect x="46" y="296" width="256" height="54" rx="10" fill="#ECFDF5" stroke="#A7F3D0"/>
-  <text x="58" y="316" font-size="11.5" font-weight="700" fill="#065F46">✅ 1秒生成可运行 SQLite 真落库底座</text>
+  <text x="58" y="316" font-size="11.5" font-weight="700" fill="#065F46">✅ 1秒生成 SQLite 真落库全栈底座</text>
   <text x="58" y="335" font-size="11" fill="#047857">自带防连击 · 防误删二次确认 · 导出 Excel</text>
 
   <!-- Arrow 1 -> 2 -->
@@ -35,24 +35,24 @@
   <!-- ==================== COLUMN 2: STEP 2 -> 4 ==================== -->
   <rect x="344" y="88" width="292" height="278" rx="14" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.5"/>
   <rect x="362" y="106" width="174" height="26" rx="13" fill="#2563EB"/>
-  <text x="449" y="123" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">第 2→4 步 · 防改崩与秒级后悔药</text>
+  <text x="449" y="123" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">第 2→4 步 · 无损改表与后悔药</text>
 
   <!-- Guard 1 -->
-  <rect x="362" y="146" width="256" height="62" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
-  <text x="374" y="166" font-size="12" font-weight="700" fill="#18181B">1. 问号只读锁 &amp; 中文按钮锁范围</text>
-  <text x="374" y="185" font-size="11.5" fill="#52525B">问“为什么”绝不乱改文件；提修改自动</text>
-  <text x="374" y="200" font-size="11.5" fill="#52525B">锁定 &lt;=3 个相关文件，严禁改A崩B</text>
+  <rect x="362" y="144" width="256" height="64" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+  <text x="374" y="164" font-size="12" font-weight="700" fill="#18181B">1. SQLite 自动无损加列 &amp; 锁范围</text>
+  <text x="374" y="182" font-size="11.2" fill="#52525B">二次加新字段自动升级老数据库不丢数据；</text>
+  <text x="374" y="198" font-size="11.2" fill="#52525B">问“为什么”0修改，改按钮锁死 &lt;=3 个文件</text>
 
   <!-- Guard 2 -->
-  <rect x="362" y="218" width="256" height="66" rx="10" fill="#FFFBEB" stroke="#FDE68A"/>
+  <rect x="362" y="218" width="256" height="68" rx="10" fill="#FFFBEB" stroke="#FDE68A"/>
   <text x="374" y="238" font-size="12" font-weight="700" fill="#92400E">2. 代码 + SQLite(WAL) 双轨时光机</text>
-  <text x="374" y="257" font-size="11.5" fill="#78350F">改崩了只发一句“退回刚才”，连代码带</text>
-  <text x="374" y="274" font-size="11.5" fill="#78350F">测试客户数据 1 秒原子恢复，绝不重开！</text>
+  <text x="374" y="257" font-size="11.2" fill="#78350F">改崩了只发一句“退回刚才”，连代码带</text>
+  <text x="374" y="274" font-size="11.2" fill="#78350F">测试客户数据 1 秒原子恢复，绝不重开！</text>
 
   <!-- Guard 3 -->
   <rect x="362" y="296" width="256" height="54" rx="10" fill="#F4F4F5" stroke="#D4D4D8"/>
-  <text x="374" y="316" font-size="11.5" font-weight="700" fill="#18181B">3. 网页底部防白屏报错捕获黑匣子</text>
-  <text x="374" y="335" font-size="11" fill="#52525B">遇错不白屏，一键复制中文报错给 AI 秒修</text>
+  <text x="374" y="316" font-size="11.5" font-weight="700" fill="#18181B">3. 启动前预检 + IDE Stop Hook 拦截</text>
+  <text x="374" y="335" font-size="11" fill="#52525B">就算 AI 忘跑检查，钩子与启动器也会自动拦住</text>
 
   <!-- Arrow 2 -> 3 -->
   <line x1="636" y1="227" x2="660" y2="227" stroke="#18181B" stroke-width="2"/>
@@ -68,18 +68,18 @@
   <text x="894" y="124" text-anchor="middle" font-size="13" font-weight="800" fill="#059669">100 / 100</text>
 
   <!-- Gate Checklist -->
-  <rect x="678" y="146" width="256" height="138" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
-  <text x="690" y="167" font-size="12" font-weight="700" fill="#18181B">0-Token 本地编译与真假门禁 (verify)：</text>
-  <text x="690" y="188" font-size="11.5" fill="#065F46">✔ 拦截 JS / HTML 内嵌脚本 / JSON 语法错</text>
-  <text x="690" y="208" font-size="11.5" fill="#065F46">✔ 拦截空点击假按钮 &amp; 不连后端的假保存</text>
-  <text x="690" y="228" font-size="11.5" fill="#065F46">✔ 拦截 404 断头接口 &amp; 空 catch 静默吞错</text>
-  <text x="690" y="248" font-size="11.5" fill="#065F46">✔ 拦截裸奔 /api/admin &amp; 明文存密码</text>
-  <text x="690" y="268" font-size="11.5" fill="#065F46">✔ Git 提交自动拦截 .env 与云密钥外泄</text>
+  <rect x="678" y="144" width="256" height="140" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+  <text x="690" y="164" font-size="12" font-weight="700" fill="#18181B">0-Token 本地编译器级门禁 (verify)：</text>
+  <text x="690" y="185" font-size="11.2" fill="#065F46">✔ 拦截 JS / HTML 脚本 / 小程序配置语法错</text>
+  <text x="690" y="205" font-size="11.2" fill="#065F46">✔ 拦截未安装的外部包 / 缺失导出 / SQL 错列</text>
+  <text x="690" y="225" font-size="11.2" fill="#065F46">✔ 拦截空点击假按钮 &amp; 不连后端的假保存</text>
+  <text x="690" y="245" font-size="11.2" fill="#065F46">✔ 拦截 404 断头接口 / 空 catch / 明文密码</text>
+  <text x="690" y="265" font-size="11.2" fill="#065F46">✔ Git 提交自动拦截 .env 与云密钥外泄</text>
 
   <!-- Final Delivery -->
   <rect x="678" y="296" width="256" height="54" rx="10" fill="#ECFDF5" stroke="#A7F3D0"/>
-  <text x="690" y="316" font-size="11.5" font-weight="700" fill="#065F46">🚀 交付真正能用的产品</text>
-  <text x="690" y="335" font-size="11" fill="#047857">本地《双击启动项目》即用 ｜ 商用附 Dockerfile</text>
+  <text x="690" y="316" font-size="11.5" font-weight="700" fill="#065F46">🚀 交付真正能用的免费产品</text>
+  <text x="690" y="335" font-size="11" fill="#047857">《双击启动项目》即用 ｜ 商用Docker ｜ 小程序包</text>
 
   <!-- Bottom Compatibility Bar -->
   <rect x="28" y="380" width="924" height="34" rx="9" fill="#18181B"/>

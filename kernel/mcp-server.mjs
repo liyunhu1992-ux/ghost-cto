@@ -86,7 +86,7 @@ const MCP_TOOLS = [
   {
     name: 'ghost_master_prompt',
     description:
-      '【卡兹克 & Karpathy 大师级提示词引擎】按需提取自动注入本项目真实数据表、端口与静态打包护栏的 8 套神级防崩提示词（苏格拉底单问立项、Karpathy外科手术、去AI塑料味UI、死循环破局、专家选角、防脑腐同步等）。',
+      '【实战防崩提示词引擎】按需提取自动注入本项目真实数据表、端口与静态打包护栏的 8 套工程防崩提示词（苏格拉底单问立项、Karpathy外科手术、去AI塑料味UI、死循环破局、专家选角、防脑腐同步等）。',
     inputSchema: {
       type: 'object',
       properties: {
@@ -103,12 +103,13 @@ const MCP_TOOLS = [
   {
     name: 'ghost_incubate_idea',
     description:
-      '【零碎想法孵化器 & 100分专业底座生成】小白提出新想法后调取！生成 0->5 施工蓝图(.vibe/blueprint.md)；若传 bootstrap=true，自动按 audience 生成个人免登录底座(self)或带 scrypt 加密登录+员工分权+审计日志+Docker 的商用底座(commercial)。',
+      '【零碎想法孵化器 & 100分专业底座生成】小白提出新想法后调取！生成 0->5 施工蓝图(.vibe/blueprint.md)；若传 bootstrap=true，自动按 audience 生成个人免登录底座(self)或带 scrypt 加密登录+员工分权+审计日志+Docker 的商用底座(commercial)，传 platform=miniprogram 同步生成微信小程序端(miniprogram/)。',
     inputSchema: {
       type: 'object',
       properties: {
         idea: { type: 'string', description: '小白口述的零碎模糊想法（哪怕只有几个字）' },
-        audience: { type: 'string', description: '模式选择: self(方案A:个人电脑免登录) | commercial(方案B:带加密账号权限与操作日志的商用版)' },
+        audience: { type: 'string', description: '模式选择: self(方案A:个人免登录) | commercial(方案B:带加密账号权限与操作日志的商用版)' },
+        platform: { type: 'string', description: '终端形态: web(默认响应式网页) | miniprogram(同时生成微信小程序原生端 miniprogram/)' },
         bootstrap: { type: 'boolean', description: '若当前为空文件夹，是否直接一键生成零出错可运行底座' },
         projectDir: { type: 'string', description: '项目根目录路径（默认当前工作区）' }
       },
@@ -253,11 +254,12 @@ function executeToolCall(toolName, args, rootDir) {
       return item.prompt;
     }
     case 'ghost_incubate_idea': {
+      const opts = { audience: args.audience || 'self', platform: args.platform || '' };
       if (args.bootstrap) {
-        const res = bootstrapGoldenApp(rootDir, args.idea || '', { audience: args.audience || 'self' });
-        return `GHOST_BOOTSTRAPPED|scaffolded:${res.scaffolded}|app:${res.blueprint.appName}|table:${res.blueprint.tableName}|score:${res.score || 'N/A'}|blueprint:.vibe/blueprint.md`;
+        const res = bootstrapGoldenApp(rootDir, args.idea || '', opts);
+        return `GHOST_BOOTSTRAPPED|scaffolded:${res.scaffolded}|app:${res.blueprint.appName}|table:${res.blueprint.tableName}|miniprogram:${Boolean(res.miniProgram)}|score:${res.score || 'N/A'}|blueprint:.vibe/blueprint.md`;
       }
-      const bp = saveIdeaBlueprint(rootDir, args.idea || '', { audience: args.audience || 'self' });
+      const bp = saveIdeaBlueprint(rootDir, args.idea || '', opts);
       return bp.blueprintMarkdown;
     }
     case 'ghost_verify_code': {

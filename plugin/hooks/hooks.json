@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node .vibe/ghost-hook-check.mjs || true"
+            "command": "node .vibe/ghost-hook-check.mjs"
           }
         ]
       }

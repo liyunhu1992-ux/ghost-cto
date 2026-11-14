@@ -274,7 +274,11 @@ async function main() {
     case 'incubate': {
       const idea = positional[1] || '';
       const targetDir = resolveTargetDir(2);
-      const bp = saveIdeaBlueprint(targetDir, idea, { audience: flags.audience || 'self' });
+      const bp = saveIdeaBlueprint(targetDir, idea, {
+        audience: flags.audience || 'self',
+        platform: flags.platform || '',
+        miniprogram: Boolean(flags.miniprogram)
+      });
       console.log(bp.blueprintMarkdown);
       console.log(`\n✅ 清晰产品施工蓝图已写入: ${bp.mdPath}`);
       break;
@@ -283,11 +287,18 @@ async function main() {
     case 'bootstrap': {
       const idea = positional[1] || '';
       const targetDir = resolveTargetDir(2);
-      const out = bootstrapGoldenApp(targetDir, idea, { audience: flags.audience || 'self' });
+      const out = bootstrapGoldenApp(targetDir, idea, {
+        audience: flags.audience || 'self',
+        platform: flags.platform || '',
+        miniprogram: Boolean(flags.miniprogram)
+      });
       console.log(`\n${out.message}`);
       console.log(`📄 产品施工蓝图: ${out.blueprint.mdPath}`);
       if (out.scaffolded) {
         console.log(`📦 初始防崩存档: ${out.checkpointId}`);
+        if (out.miniProgram) {
+          console.log(`📱 微信小程序原生目录: ${out.miniProgramDir}（可直接免费导入微信开发者工具）`);
+        }
         console.log(`🚀 现在直接双击项目里的「双击启动项目.command / .bat」就能立刻体验真落库应用！\n`);
       }
       break;
@@ -296,16 +307,17 @@ async function main() {
     case 'verify': {
       const targetDir = resolveTargetDir(1);
       const ver = verifyWorkspaceCode(targetDir);
+      const isOk = flags['syntax-only'] ? ver.syntaxErrors.length === 0 : ver.ok;
       if (flags.ai) {
         console.log(ver.aiCompact);
-      } else if (ver.ok) {
-        console.log(`✅ 零出错编译与真假门禁全绿通过！(已检查 ${ver.filesChecked} 个源码文件，0 语法错误，商用健康分 ${ver.score}/100)`);
+      } else if (isOk) {
+        console.log(`✅ 零出错编译与真假门禁全绿通过！(已检查 ${ver.filesChecked} 个源码文件，0 编译错误，商用健康分 ${ver.score}/100)`);
       } else {
-        console.error(`\n🛑 零出错门禁抓到 ${ver.syntaxErrors.length} 处代码语法错误、${ver.p0Findings.length} 处致命断头/假功能：`);
+        console.error(`\n🛑 零出错门禁抓到 ${ver.syntaxErrors.length} 处代码/依赖/SQL错误、${ver.p0Findings.length} 处致命断头/假功能：`);
         for (const line of ver.errorLines) console.error(`  ${line}`);
         console.error(`\n👉 直接把上面提示粘贴给 AI 即可精准秒修！\n`);
       }
-      if (!ver.ok) process.exitCode = 1;
+      if (!isOk) process.exitCode = 1;
       break;
     }
 

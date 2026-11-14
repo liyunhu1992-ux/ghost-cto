@@ -127,6 +127,8 @@ export async function runDoctor(targetRootDir) {
     { rel: '.agents/plugins/ghost-cto/mcp_config.json', label: 'Antigravity 插件级 MCP (mcp_config.json)' },
     { rel: '.cursor/rules/ghost-cto.mdc', label: 'Cursor 规则 (.mdc)' },
     { rel: 'CLAUDE.md', label: 'Claude Code 入口指针' },
+    { rel: '.claude/settings.json', label: 'Claude Code 结束时自动验毒钩子 (.claude/settings.json)' },
+    { rel: '.vibe/ghost-hook-check.mjs', label: 'IDE 结束回合自动门禁拦截器 (.vibe/ghost-hook-check.mjs)' },
     { rel: '.vibe/项目体检报告.html', label: '离线中文真假与安全体检报告 (.vibe/项目体检报告.html)' },
     { rel: '.vibe/大师级提示词库.md', label: '项目专属大师级提示词弹药库' },
     { rel: '双击启动项目.command', label: 'macOS 双击自愈启动器' },
@@ -249,7 +251,7 @@ export async function runSelfTrial() {
     // 2. Run Doctor (spawning live MCP server subprocess over OS pipes)
     const doc = await runDoctor(trialRoot);
     if (!doc.allPassed) throw new Error('Doctor check failed during self-trial');
-    steps.push(`2. 真实跨目录 MCP 子进程握手通过（WorkBuddy / 豆包 / Antigravity / Cursor 7 工具全通）`);
+    steps.push(`2. 真实跨目录 MCP 子进程握手通过（WorkBuddy / 豆包 / Antigravity / Cursor 9 工具全通）`);
 
     // 3. Verify Reality Audit caught all planted traps at 0 LLM tokens
     const ws = scanWorkspace(trialRoot);
@@ -278,7 +280,7 @@ export async function runSelfTrial() {
     if (arsenal.length !== 8 || !arsenal[0].prompt.includes('demo-vibe-saas') || !arsenal[0].prompt.includes('新增会员积分商城')) {
       throw new Error('Master Prompt Arsenal context injection failed');
     }
-    steps.push(`6. 卡兹克 & Karpathy 大师级提示词引擎上下文注入通过（${arsenal.length} 套神级指令就绪）`);
+    steps.push(`6. 实战防崩提示词引擎上下文注入通过（${arsenal.length} 套指令就绪）`);
 
     return { ok: true, steps };
   } finally {

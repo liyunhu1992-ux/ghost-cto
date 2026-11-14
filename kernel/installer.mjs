@@ -8,6 +8,7 @@ import { saveCheckpoint, listCheckpoints } from './time-capsule.mjs';
 import { writeMemoryCapsule, detectRuntimeTopology } from './memory-capsule.mjs';
 import { generateBossDashboard, generateSelfHealingLaunchers } from './boss-dashboard.mjs';
 import { buildMasterPromptArsenal, formatPromptArsenalReport } from './prompt-arsenal.mjs';
+import { verifyWorkspaceCode } from './code-verifier.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const GHOST_PACKAGE_ROOT = path.resolve(__dirname, '..');
@@ -46,6 +47,32 @@ function upsertMcpJsonFile(filePath, serverEntry) {
     base.mcpServers = {};
   }
   base.mcpServers['ghost-cto'] = serverEntry;
+  fs.writeFileSync(filePath, JSON.stringify(base, null, 2) + '\n', 'utf8');
+}
+
+function upsertStopHookFile(filePath) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  let base = {};
+  if (fs.existsSync(filePath)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) base = parsed;
+    } catch {
+      base = {};
+    }
+  }
+  if (!base.hooks || typeof base.hooks !== 'object' || Array.isArray(base.hooks)) {
+    base.hooks = {};
+  }
+  const stopArr = Array.isArray(base.hooks.Stop) ? base.hooks.Stop : [];
+  const cmdStr = 'node .vibe/ghost-hook-check.mjs';
+  const alreadyPresent = stopArr.some(
+    entry => Array.isArray(entry?.hooks) && entry.hooks.some(h => String(h?.command || '').includes('ghost-hook-check'))
+  );
+  if (!alreadyPresent) {
+    stopArr.push({ hooks: [{ type: 'command', command: cmdStr }] });
+  }
+  base.hooks.Stop = stopArr;
   fs.writeFileSync(filePath, JSON.stringify(base, null, 2) + '\n', 'utf8');
 }
 
@@ -89,18 +116,59 @@ export function installGhostCTO(targetRootDir, options = {}) {
     // ignore
   }
 
-  // Create Stop-hook helper script
+  // Create deterministic Stop-hook verifier script (forces IDE agents to self-repair syntax/import/SQL/fake-button bugs before finishing, with 1-shot fingerprint guard so it NEVER loops infinitely!)
   const hookScriptPath = path.join(absTarget, '.vibe', 'ghost-hook-check.mjs');
   fs.writeFileSync(
     hookScriptPath,
-    `import { scanWorkspace } from './engine/kernel/scanner.mjs';\n` +
-      `import { runRealityAudit } from './engine/kernel/reality-audit.mjs';\n` +
-      `import { writeMemoryCapsule } from './engine/kernel/memory-capsule.mjs';\n` +
-      `import { generateBossDashboard } from './engine/kernel/boss-dashboard.mjs';\n` +
-      `const ws = scanWorkspace(process.cwd());\n` +
-      `const audit = runRealityAudit(ws);\n` +
-      `writeMemoryCapsule(ws, audit);\n` +
-      `generateBossDashboard(ws, audit);\n`,
+    [
+      `import fs from 'node:fs';`,
+      `import path from 'node:path';`,
+      `import { fileURLToPath } from 'node:url';`,
+      `import { scanWorkspace } from './engine/kernel/scanner.mjs';`,
+      `import { runRealityAudit } from './engine/kernel/reality-audit.mjs';`,
+      `import { writeMemoryCapsule } from './engine/kernel/memory-capsule.mjs';`,
+      `import { generateBossDashboard } from './engine/kernel/boss-dashboard.mjs';`,
+      `import { verifyWorkspaceCode } from './engine/kernel/code-verifier.mjs';`,
+      ``,
+      `const vibeDir = path.dirname(fileURLToPath(import.meta.url));`,
+      `const rootDir = path.resolve(vibeDir, '..');`,
+      `const statePath = path.join(vibeDir, 'hook-retry-state.json');`,
+      ``,
+      `let stopHookActive = false;`,
+      `try {`,
+      `  if (!process.stdin.isTTY) {`,
+      `    const rawIn = fs.readFileSync(0, 'utf8').trim();`,
+      `    if (rawIn) {`,
+      `      const parsed = JSON.parse(rawIn);`,
+      `      if (parsed && parsed.stop_hook_active) stopHookActive = true;`,
+      `    }`,
+      `  }`,
+      `} catch {`,
+      `  // non-JSON or empty stdin`,
+      `}`,
+      ``,
+      `const ws = scanWorkspace(rootDir);`,
+      `const audit = runRealityAudit(ws);`,
+      `writeMemoryCapsule(ws, audit);`,
+      `generateBossDashboard(ws, audit);`,
+      ``,
+      `if (ws.codeFiles.length > 0) {`,
+      `  const ver = verifyWorkspaceCode(rootDir);`,
+      `  if (ver.ok) {`,
+      `    try { fs.rmSync(statePath, { force: true }); } catch {}`,
+      `  } else {`,
+      `    const newestMtime = ws.codeFiles.reduce((m, f) => Math.max(m, Math.round(f.mtimeMs)), 0);`,
+      `    const fingerprint = newestMtime + '|' + ver.aiCompact;`,
+      `    let prevFp = '';`,
+      `    try { prevFp = JSON.parse(fs.readFileSync(statePath, 'utf8')).lastBlockedFingerprint || ''; } catch {}`,
+      `    if (!stopHookActive && prevFp !== fingerprint) {`,
+      `      fs.writeFileSync(statePath, JSON.stringify({ lastBlockedFingerprint: fingerprint }, null, 2), 'utf8');`,
+      `      process.stderr.write('\\n' + ver.aiFixPrompt + '\\n');`,
+      `      process.exit(2);`,
+      `    }`,
+      `  }`,
+      `}`
+    ].join('\n') + '\n',
     'utf8'
   );
 
@@ -156,12 +224,13 @@ export function installGhostCTO(targetRootDir, options = {}) {
   );
   upsertMcpJsonFile(path.join(absTarget, '.cursor', 'mcp.json'), ghostServerEntry);
 
-  // 8. Claude Code (`CLAUDE.md` pointer + `.claude/skills/` + `.mcp.json`)
+  // 8. Claude Code (`CLAUDE.md` pointer + `.claude/skills/` + `.claude/settings.json` Stop Hook + `.mcp.json`)
   const claudeMdPath = path.join(absTarget, 'CLAUDE.md');
   if (!fs.existsSync(claudeMdPath)) {
     fs.writeFileSync(claudeMdPath, `@AGENTS.md\n`, 'utf8');
   }
   copyDirRecursive(skillsSrcDir, path.join(absTarget, '.claude', 'skills'));
+  upsertStopHookFile(path.join(absTarget, '.claude', 'settings.json'));
   upsertMcpJsonFile(path.join(absTarget, '.mcp.json'), ghostServerEntry);
 
   // 9. Windsurf (`.windsurf/rules/ghost-cto.md` + `.windsurf/mcp_config.json`)
@@ -189,6 +258,19 @@ export function installGhostCTO(targetRootDir, options = {}) {
     formatPromptArsenalReport(masterPrompts, runtime.projectName) + '\n',
     'utf8'
   );
+
+  // Seed baseline fingerprint if brownfield project already has pre-existing blockers so read-only questions never get stuck
+  if (ws.codeFiles.length > 0) {
+    const baseVer = verifyWorkspaceCode(absTarget);
+    if (!baseVer.ok) {
+      const newestMtime = ws.codeFiles.reduce((m, f) => Math.max(m, Math.round(f.mtimeMs)), 0);
+      fs.writeFileSync(
+        path.join(absTarget, '.vibe', 'hook-retry-state.json'),
+        JSON.stringify({ lastBlockedFingerprint: `${newestMtime}|${baseVer.aiCompact}` }, null, 2),
+        'utf8'
+      );
+    }
+  }
 
   const capsuleInfo = writeMemoryCapsule(ws, audit);
   const dashboardInfo = generateBossDashboard(ws, audit);

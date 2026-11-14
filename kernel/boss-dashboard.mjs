@@ -456,7 +456,7 @@ export function generateBossDashboard(workspace, audit) {
 
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('risks', this)">🚨 白话隐患与一键修复 (${audit.findings.length})</button>
-      <button class="tab-btn" onclick="switchTab('prompts', this)">✨ 大师级神级提示词 (${masterPrompts.length})</button>
+      <button class="tab-btn" onclick="switchTab('prompts', this)">✨ 实战防崩指令库 (${masterPrompts.length})</button>
       <button class="tab-btn" onclick="switchTab('lineage', this)">🔬 全栈功能真假透视表 (${chains.length})</button>
       <button class="tab-btn" onclick="switchTab('timemachine', this)">⏪ 后悔药时光机 & 多软件接力 (${checkpoints.length})</button>
       <button class="tab-btn" onclick="switchTab('sos', this)">🆘 小白英文弹窗 & 打不开急救卡</button>
@@ -468,7 +468,7 @@ export function generateBossDashboard(workspace, audit) {
 
     <div id="panel-prompts" class="panel">
       <div class="arsenal-hero">
-        <h3 class="finding-title">✨ 卡兹克 (KKKKhazix) & 全网封神提示词库（0 平时 Token 消耗 · 已自动注入本项目家底）</h3>
+        <h3 class="finding-title">✨ 卡兹克 (KKKKhazix) & Karpathy 实战防崩指令库（0 平时 Token 消耗 · 已自动注入本项目家底）</h3>
         <p class="finding-desc" style="margin-bottom: 4px;">不用自己背提示词！在下面框里用一句大白话写下你想干的事（不填也能直接复制），点任意卡片的按钮，就会把<strong>你的想法 + 本项目真实数据表与防崩护栏</strong>一起打包复制好，直接粘贴进 WorkBuddy / 豆包 / Trae / Antigravity 即可：</p>
         <input id="boss-topic-input" class="topic-input" type="text" placeholder="✍️ 选填：在这里输入一句你的想法（例如：加一个客户积分兑换功能 / 把管理后台界面改高级一点）..." />
         <div class="filter-row">
@@ -807,10 +807,23 @@ export function generateSelfHealingLaunchers(workspace) {
 
   const macScript = `#!/bin/bash
 cd "$(dirname "$0")"
+export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.volta/bin:$HOME/.fnm/current/bin:$PATH"
+if ! command -v node >/dev/null 2>&1 && [ -d "$HOME/.nvm/versions/node" ]; then
+  NVM_LATEST=$(ls -d "$HOME/.nvm/versions/node/"* 2>/dev/null | tail -n 1)
+  [ -n "$NVM_LATEST" ] && export PATH="$NVM_LATEST/bin:$PATH"
+fi
+
 echo "===================================================="
 echo "🛡️ 影子 CTO (GhostCTO) 自愈式一键启动器"
 echo "项目：${runtime.projectName}"
 echo "===================================================="
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "❌ 尚未检测到免费运行环境 Node.js（装一次终身可用）。"
+  BTN=$(osascript -e 'button returned of (display dialog "电脑还差一个免费的底层运行环境 Node.js（1分钟即可装好）。\\n\\n点击下方按钮打开官网，下载左侧 LTS 版本一路点下一步安装即可！" buttons {"稍后", "打开 Node.js 官网下载"} default button 2 with title "影子 CTO 环境提示")' 2>/dev/null || echo "")
+  [ "$BTN" = "打开 Node.js 官网下载" ] && open "https://nodejs.org/zh-cn"
+  exit 1
+fi
 
 if [ ! -f "package.json" ] && [ ! -f "src/server.mjs" ] && [ ! -f "main.py" ] && [ ! -f "app.py" ] && [ ! -f "index.html" ]; then
   echo ""
@@ -837,9 +850,28 @@ if [ -f "package.json" ] && [ ! -d "node_modules" ] && grep -Eq '"(dependencies|
   npm install
 fi
 
+if [ -f ".vibe/engine/bin/ghost-cto.mjs" ]; then
+  VERIFY_ERR=$(node ".vibe/engine/bin/ghost-cto.mjs" verify --syntax-only --dir "$(pwd)" 2>&1 >/dev/null || true)
+  if [ -n "$VERIFY_ERR" ]; then
+    echo "$VERIFY_ERR"
+    printf "我的项目启动前抓到了以下错误，请精准修复并通过 verify：\\n%s\\n" "$VERIFY_ERR" | pbcopy 2>/dev/null || true
+    CHOICE=$(osascript -e 'button returned of (display dialog "🛡️ 影子 CTO 抓到 AI 刚才写漏了一个代码错误（已自动把精准修复话术复制到您的剪贴板）！\\n\\n您可以：\\n1. 去聊天框直接粘贴（Cmd+V）让 AI 秒修；\\n2. 或者点「一键退回上一版并启动」立刻恢复正常使用！" buttons {"去粘贴让AI修", "⏪ 一键退回上一版并启动"} default button 2 with title "🛡️ 影子 CTO 防崩拦截")' 2>/dev/null || echo "")
+    if [ "$CHOICE" = "⏪ 一键退回上一版并启动" ]; then
+      node ".vibe/engine/bin/ghost-cto.mjs" rewind latest --dir "$(pwd)"
+    else
+      exit 1
+    fi
+  fi
+fi
+
 ${staleBuildCmds ? `echo "🔨 正在同步最新界面打包文件..."\n${staleBuildCmds} || true` : '# 无需静态预打包'}
 
-(sleep 1.5 && open "http://127.0.0.1:${primaryPort}") &
+if [ -f "miniprogram/project.config.json" ]; then
+  echo "📱 检测到本项目已同步生成【微信小程序原生端】(miniprogram/ 目录)！"
+  echo "   保持本窗口开启，用免费的「微信开发者工具」导入本项目里的 miniprogram 文件夹即可真机预览小程序！"
+fi
+
+(sleep 1.2 && open "http://127.0.0.1:${primaryPort}") &
 
 echo "🚀 服务启动中！浏览器即将自动打开 http://127.0.0.1:${primaryPort}"
 echo "（保持本窗口开启即可使用，关闭本窗口即停止服务）"
@@ -857,6 +889,15 @@ echo ====================================================
 echo [GhostCTO] 影子 CTO 自愈式一键启动器
 echo 项目：${runtime.projectName}
 echo ====================================================
+
+where node >nul 2>&1
+if errorlevel 1 (
+  echo [环境提示] 尚未检测到免费的底层运行环境 Node.js（1分钟即可安装）。
+  echo 正在为您打开 Node.js 中文官网，请下载 LTS 版本安装后再双击启动！
+  start "" "https://nodejs.org/zh-cn"
+  pause
+  exit /b 1
+)
 
 if not exist "package.json" if not exist "src\\server.mjs" if not exist "main.py" if not exist "app.py" (
   echo.
@@ -876,6 +917,20 @@ if exist "package.json" (
       call npm install
     )
   )
+)
+
+if exist ".vibe\\engine\\bin\\ghost-cto.mjs" (
+  node ".vibe\\engine\\bin\\ghost-cto.mjs" verify --syntax-only --dir "%cd%" >nul
+  if errorlevel 1 (
+    echo.
+    echo [防崩拦截] 检测到 AI 留有语法或依赖缺失错误！请把上方红色报错复制粘贴给 AI 修复，或对 AI 说“退回上一版”。
+    pause
+    exit /b 1
+  )
+)
+
+if exist "miniprogram\\project.config.json" (
+  echo [小程序端已就绪] 保持本窗口开启，用免费的“微信开发者工具”导入 miniprogram 文件夹即可预览小程序！
 )
 
 start "" "http://127.0.0.1:${primaryPort}"

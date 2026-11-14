@@ -164,7 +164,7 @@ function classifyFileRole(relPath, ext) {
   if (ext === '.html' || /\.(jsx|tsx|vue|svelte)$/.test(lower)) {
     return 'frontend';
   }
-  if (/(^|\/)(apps\/web|apps\/admin|client|frontend|web|pages|components|views|ui|public)\//.test(lower)) {
+  if (/(^|\/)(apps\/web|apps\/admin|client|frontend|web|miniprogram|pages|components|views|ui|public)\//.test(lower)) {
     return 'frontend';
   }
   if (/(render|view|studio|widget|canvas|styles)\.[mc]?[jt]s$/.test(lower)) {

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { detectRuntimeTopology } from './memory-capsule.mjs';
 
 /**
- * Context-Aware Master Prompt Arsenal (`大师级神级指令弹药库`)
+ * Context-Aware Master Prompt Arsenal (`实战防崩指令库`)
  *
  * Distills the highest-signal Vibe Coding prompts & skills from:
  * - 数字生命卡兹克 (`KKKKhazix/khazix-skills`): 苏格拉底单问澄清法、顶尖专家选角法、`leader` 任务书收敛、`neat-freak` 防脑腐三层同步、去 AI 机器味四检法
@@ -83,7 +83,7 @@ ${projectContextBlock}
     {
       id: 'karpathy-surgical-code',
       category: 'engineering',
-      badge: '🌍 GitHub 21万星封神 · 日常改代码必用',
+      badge: '🌍 Karpathy 极简原则 · 日常改代码必用',
       title: 'Karpathy 极简外科手术防崩令',
       inspiration: '融合 Andrej Karpathy 四大编程铁律 + GhostCTO 爆炸半径锁',
       whenToUse: '日常让 AI 加按钮、改逻辑、接数据库，最怕它“戏太多”顺手把旁边好好的功能改崩时用。',
@@ -103,7 +103,7 @@ ${projectContextBlock}
     {
       id: 'anti-ai-slop-ui',
       category: 'design',
-      badge: '🎨 审美封神 · 告别廉价紫光模板',
+      badge: '🎨 克制审美 · 告别廉价紫光模板',
       title: '去 AI 塑料味 · Linear/Stripe 高定界面重塑令',
       inspiration: '融合 全网爆火 Anti-AI-Slop 设计宣言 + 商业级高定克制美学',
       whenToUse: '觉得 AI 做出来的网页一股廉价“AI 塑料味”（蓝紫霓虹渐变、满屏乱飞的 Emoji、千篇一律三栏白卡片）时用。',
@@ -241,8 +241,8 @@ export function getMasterPromptById(workspace, audit, promptId, customTopic = ''
 
 export function formatPromptArsenalReport(prompts, projectName) {
   const lines = [
-    `# ✨ ${projectName} · 大师级神级提示词弹药库（已自动注入本项目家底）`,
-    `> 精选融合 **数字生命卡兹克 (KKKKhazix)**、**Andrej Karpathy** 与全网最高赞防崩/高定审美提示词，0 常驻 Token 负担，按需复制即用。`,
+    `# ✨ ${projectName} · 实战防崩指令库（已自动注入本项目家底）`,
+    `> 精选整理 **数字生命卡兹克 (KKKKhazix)**、**Andrej Karpathy** 与工程防崩/界面审美指令，0 常驻 Token 负担，按需复制即用。`,
     ''
   ];
 
