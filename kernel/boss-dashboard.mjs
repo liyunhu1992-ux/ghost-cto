@@ -228,12 +228,20 @@ export function generateBossDashboard(workspace, audit) {
 </head>
 <body>
   <div class="container">
+    <div class="finding-card" style="background:#EFF6FF; border-color:#BFDBFE; border-left:5px solid #2563EB; margin-bottom:14px; padding:14px 18px;">
+      <div style="font-size:15px; font-weight:700; color:#1E3A8A; margin-bottom:4px;">💡 第一次看一头雾水？其实平时你【根本不用打开这个网页】！</div>
+      <div style="font-size:13.5px; color:#1E40AF; line-height:1.65;">
+        <strong>日常真正用法只有一步：</strong>直接关掉本页，去你的 AI 编程软件（Trae / 豆包 / WorkBuddy / Cursor / Antigravity）聊天框里<strong>照常说大白话提需求就行</strong>——自动备份、防乱改文件、写完自动查错已经在后台静默生效了。<br/>
+        <strong>什么时候才看本页？</strong>① 怀疑 AI 糊弄你时打开看一眼体检分，哪条有问题就点那条右边的「复制话术发给 AI」；② AI 把项目彻底改坏聊不通时，点下方「⏪ 后悔药时光机」一键退回上一版。
+      </div>
+    </div>
+
     <div class="mode-bar">
-      <span id="live-status-text" class="mode-badge-offline">📄 离线体检报告快照（日常直接在 AI 聊天框说大白话即可自动驱动全套保护）</span>
+      <span id="live-status-text" class="mode-badge-offline">📄 后台自动守护已开启（日常直接去 AI 聊天框说大白话即可）</span>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button id="btn-live-verify" class="live-only-btn" style="display:none; background:#2563EB;" onclick="liveVerifyCode()">✅ 0-Token 语法与契约全检</button>
-        <button id="btn-live-audit" class="live-action-btn" style="display:none;" onclick="liveRunAudit()">🔄 0-Token 立即重新体检刷新分数</button>
-        <button class="copy-btn ghost-btn" data-copy="${escHtml(shareCertificateText)}">🏅 复制项目体检战报</button>
+        <button id="btn-live-verify" class="live-only-btn" style="display:none; background:#2563EB;" onclick="liveVerifyCode()">✅ 检查代码有没有写坏</button>
+        <button id="btn-live-audit" class="live-action-btn" style="display:none;" onclick="liveRunAudit()">🔄 刷新体检结果</button>
+        <button class="copy-btn ghost-btn" data-copy="${escHtml(shareCertificateText)}">📋 复制体检摘要</button>
       </div>
     </div>
 
