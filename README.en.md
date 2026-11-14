@@ -14,7 +14,7 @@
 [![Always-On Router](https://img.shields.io/badge/Router_Footprint-410_Tokens_(90%25_KV_Cached)-7C3AED?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-18181B?style=flat-square)](./LICENSE)
 
-[**简体中文旗舰文档**](./README.md) ｜ [**Install Guide**](./INSTALL.md) ｜ [**Security Policy**](./SECURITY.md) ｜ [**Changelog**](./CHANGELOG.md)
+[**简体中文旗舰文档**](./README.md) ｜ [**Beginner Guide (小白通关手册)**](./小白与AI对话全链路通关手册.md) ｜ [**Install Guide**](./INSTALL.md) ｜ [**Security Policy**](./SECURITY.md) ｜ [**Changelog**](./CHANGELOG.md)
 
 </div>
 

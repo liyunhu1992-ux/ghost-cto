@@ -14,13 +14,17 @@
 [![Always-On Prompt](https://img.shields.io/badge/Router_Footprint-410_Tokens_(90%25_KV_Cached)-7C3AED?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-18181B?style=flat-square)](./LICENSE)
 
-[**English README**](./README.en.md) ｜ [**安装与国内软件配置指南**](./INSTALL.md) ｜ [**小白英文弹窗急救手册**](./docs/POPUP_DICTIONARY.md) ｜ [**安全说明**](./SECURITY.md)
+[**📖 小白与 AI 对话全链路通关手册（照着抄，绝不翻车）**](./小白与AI对话全链路通关手册.md) ｜ [**English README**](./README.en.md) ｜ [**安装与国内软件配置指南**](./INSTALL.md) ｜ [**小白英文弹窗急救手册**](./docs/POPUP_DICTIONARY.md) ｜ [**安全说明**](./SECURITY.md)
 
 </div>
 
 <p align="center">
   <img src="./docs/live-cockpit-demo.svg" width="100%" alt="GhostCTO 15秒老板驾驶舱真机动态演示：40分抓假代码 -> 卡兹克与Karpathy家底自动注入 -> 97分商用全绿" />
 </p>
+
+> [!TIP]
+> 刚从 GitHub 下载解压？**不知道第一句话怎么跟 AI 说？**  
+> 别慌！直接点击打开 👉 [**《零基础小白与 AI 对话全链路通关手册》**](./小白与AI对话全链路通关手册.md)，教你如何直接把解压文件夹改名就能当新项目用，并给你准备好了跟豆包/Trae/Cursor聊天的 5 大回合完整复制模板！
 
 ---
 
