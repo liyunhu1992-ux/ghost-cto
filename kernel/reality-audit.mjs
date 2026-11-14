@@ -427,7 +427,7 @@ export function runRealityAudit(workspace, existingLineage = null) {
   const p0Count = findings.filter(f => f.severity === 'P0').length;
   const p1Count = findings.filter(f => f.severity === 'P1').length;
   const p2Count = findings.filter(f => f.severity === 'P2').length;
-  const rawScore = 100 - p0Count * 22 - p1Count * 8 - p2Count * 3;
+  const rawScore = 100 - p0Count * 22 - p1Count * 8 - Math.min(12, p2Count * 2);
   const score = Math.max(8, Math.min(100, rawScore));
 
   const isEmptyStarter = workspace.codeFiles.length === 0;
