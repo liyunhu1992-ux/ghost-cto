@@ -47,8 +47,8 @@ export function detectRuntimeTopology(workspace) {
         const p = Number(m[1]);
         if (p >= 1024 && p <= 65535) ports.add(p);
       }
-      // Also detect helper calls like `createStaticWithApiProxy(..., 8891, ...)`
-      const helperPortRe = /,\s*(8\d{3}|3\d{3}|4\d{3}|517\d)\s*,/g;
+      // Also detect server/proxy helper calls like `createStaticWithApiProxy(..., 8891, ...)`
+      const helperPortRe = /\b(?:create[A-Za-z0-9_$]*(?:Server|Proxy)|start[A-Za-z0-9_$]*Server)\s*\([^;\n]*?,\s*(8\d{3}|3\d{3}|4\d{3}|517\d)\b/g;
       while ((m = helperPortRe.exec(src)) !== null) {
         ports.add(Number(m[1]));
       }
