@@ -8,3 +8,11 @@ coverage/
 .vibe/
 *上传到GitHub*
 
+# GhostCTO Safety Rules
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.db-wal
+*.db-shm
+.vibe/checkpoints/
