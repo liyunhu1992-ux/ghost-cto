@@ -145,7 +145,13 @@ export function generateBossDashboard(workspace, audit) {
           .map((f, idx) => {
             const sevClass = f.severity === 'P0' ? 'sev-p0' : f.severity === 'P1' ? 'sev-p1' : 'sev-p2';
             const sevLabel =
-              f.severity === 'P0' ? '🔴 致命阻断（上线前必改）' : f.severity === 'P1' ? '🟠 高危隐患（建议修复）' : '🔵 结构优化提醒';
+              f.severity === 'P0'
+                ? '🔴 致命问题（请点右侧按钮复制发给 AI 修）'
+                : f.severity === 'P1'
+                ? '🟠 隐患提醒（正式上线前建议复制发给 AI 修）'
+                : '🔵 温和提醒（不影响使用，平时完全不用管）';
+            const btnClass = f.severity === 'P2' ? 'copy-btn ghost-btn' : 'copy-btn';
+            const btnLabel = f.severity === 'P2' ? '📋 可选：有空想整理时再复制' : '📋 一键复制修复话术（发给 AI）';
             return `
             <div class="finding-card ${sevClass}">
               <div class="finding-head">
@@ -153,7 +159,7 @@ export function generateBossDashboard(workspace, audit) {
                   <span class="sev-tag ${sevClass}">${sevLabel}</span>
                   <span class="file-loc">${escHtml(f.file)}:${f.line}</span>
                 </div>
-                <button class="copy-btn" data-copy="${escHtml(f.oneClickPrompt)}">📋 一键复制修复话术（发给 AI）</button>
+                <button class="${btnClass}" data-copy="${escHtml(f.oneClickPrompt)}">${btnLabel}</button>
               </div>
               <h3 class="finding-title">${idx + 1}. ${escHtml(f.title)}</h3>
               <p class="finding-desc"><strong>实际影响：</strong>${escHtml(f.founderImpact)}</p>
