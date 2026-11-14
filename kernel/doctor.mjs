@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { estimateTokens } from './lexer.mjs';
-import { installGhostCTO } from './installer.mjs';
+import { installGhostCTO, GHOST_PACKAGE_ROOT } from './installer.mjs';
 import { scanWorkspace } from './scanner.mjs';
 import { runRealityAudit } from './reality-audit.mjs';
 import { computeBlastRadius } from './blast-radius.mjs';
@@ -131,7 +131,7 @@ export async function runDoctor(targetRootDir) {
     { rel: '.vibe/ghost-hook-check.mjs', label: 'IDE 结束回合自动门禁拦截器 (.vibe/ghost-hook-check.mjs)' },
     { rel: '.vibe/项目体检报告.html', label: '离线中文真假与安全体检报告 (.vibe/项目体检报告.html)' },
     { rel: '.vibe/大师级提示词库.md', label: '项目专属大师级提示词弹药库' },
-    { rel: '双击启动项目.command', label: 'macOS 双击自愈启动器' },
+    ...(absRoot === GHOST_PACKAGE_ROOT ? [] : [{ rel: '双击启动项目.command', label: 'macOS 双击自愈启动器' }]),
     { rel: '.vibe/capsule.md', label: '跨软件记忆胶囊 (.vibe/capsule.md)' }
   ];
 

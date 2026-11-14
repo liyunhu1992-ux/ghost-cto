@@ -25,8 +25,8 @@ export function detectRuntimeTopology(workspace) {
       } else if (scripts.start) {
         startCmd = 'npm start';
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      if (process.env.GHOST_DEBUG) console.error('[ghost-cto:capsule]', err.message);
     }
   } else if (fs.existsSync(path.join(workspace.rootDir, 'start-all.mjs'))) {
     startCmd = 'node start-all.mjs';
@@ -52,8 +52,8 @@ export function detectRuntimeTopology(workspace) {
       while ((m = helperPortRe.exec(src)) !== null) {
         ports.add(Number(m[1]));
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      if (process.env.GHOST_DEBUG) console.error('[ghost-cto:capsule]', err.message);
     }
   }
 
@@ -88,9 +88,23 @@ export function writeMemoryCapsule(workspace, audit) {
     .map(r => `- SCAR: ${r.rule}`)
     .join('\n');
 
+  let roadmapLine = '';
+  const roadmapPath = path.join(vibeDir, 'roadmap.json');
+  if (fs.existsSync(roadmapPath)) {
+    try {
+      const rm = JSON.parse(fs.readFileSync(roadmapPath, 'utf8'));
+      if (rm && rm.productKind) {
+        roadmapLine = `KIND: ${rm.productKind} (${rm.archetypeLabel || 'custom'}) | ROADMAP: .vibe/roadmap.json (0->5)`;
+      }
+    } catch (err) {
+      roadmapLine = err ? '' : '';
+    }
+  }
+
   const capsuleText = [
     `# GhostCTO Cross-IDE Capsule (<350 tok)`,
     `PROJ: ${runtime.projectName} | MONOREPO: ${workspace.isMonorepo} | SCORE: ${audit.score}/100`,
+    ...(roadmapLine ? [roadmapLine] : []),
     `BOOT: \`${runtime.startCmd}\` | PORTS: ${runtime.ports.join(', ') || 'auto'} | STATIC_BUILD_APPS: ${buildApps}`,
     `DB_FILES: ${workspace.dbFiles.map(d => d.relPath).join(', ') || 'NONE'}`,
     `TABLES(${audit.lineage.schemaTables.length}): ${audit.lineage.schemaTables.slice(0, 14).join(', ') || 'NONE'}`,

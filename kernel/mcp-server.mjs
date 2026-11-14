@@ -316,8 +316,8 @@ export function startMcpStdioServer(defaultRootDir = process.cwd()) {
         try {
           const parsed = JSON.parse(bodyStr);
           sendResponse(handleMcpRequest(parsed, defaultRootDir));
-        } catch {
-          // ignore malformed packet
+        } catch (err) {
+          sendResponse({ jsonrpc: '2.0', id: null, error: { code: -32700, message: `Parse error: ${err.message}` } });
         }
         continue;
       }
@@ -332,8 +332,8 @@ export function startMcpStdioServer(defaultRootDir = process.cwd()) {
       try {
         const parsed = JSON.parse(lineStr);
         sendResponse(handleMcpRequest(parsed, defaultRootDir));
-      } catch {
-        // ignore blank/noise lines
+      } catch (err) {
+        if (process.env.GHOST_DEBUG) console.error('[ghost-cto:mcp]', err.message);
       }
     }
   });

@@ -89,7 +89,8 @@ function upsertStopHookFile(filePath) {
  */
 export function installGhostCTO(targetRootDir, options = {}) {
   const absTarget = path.resolve(targetRootDir);
-  if (absTarget === GHOST_PACKAGE_ROOT && !options.allowSelf) {
+  const isSelfRepo = absTarget === GHOST_PACKAGE_ROOT;
+  if (isSelfRepo && !options.allowSelf) {
     throw new Error(
       '温馨提示：当前目录是 GhostCTO（影子 CTO）工具本身的安装器源码目录，请勿把业务项目直接混写在这里。\n' +
         '👉 新手做新产品：请直接双击「1-双击新建我的空白项目.command」（苹果）或「.bat」（Windows），自动在桌面为您创建干净新项目！\n' +
@@ -97,25 +98,30 @@ export function installGhostCTO(targetRootDir, options = {}) {
     );
   }
   fs.mkdirSync(absTarget, { recursive: true });
+  fs.mkdirSync(path.join(absTarget, '.vibe'), { recursive: true });
 
   const pluginSrc = path.join(GHOST_PACKAGE_ROOT, 'plugin');
   const agentsRuleText = fs.readFileSync(path.join(pluginSrc, 'rules', 'AGENTS.md'), 'utf8');
   const skillsSrcDir = path.join(pluginSrc, 'skills');
 
-  // 1. Vendor zero-dependency self-contained engine into `.vibe/engine/` so MCP & CLI run 100% offline with 0 popups
-  const vendoredEngineDir = path.join(absTarget, '.vibe', 'engine');
-  copyDirRecursive(path.join(GHOST_PACKAGE_ROOT, 'kernel'), path.join(vendoredEngineDir, 'kernel'));
-  copyDirRecursive(path.join(GHOST_PACKAGE_ROOT, 'bin'), path.join(vendoredEngineDir, 'bin'));
-  copyDirRecursive(pluginSrc, path.join(vendoredEngineDir, 'plugin'));
-  fs.copyFileSync(path.join(GHOST_PACKAGE_ROOT, 'package.json'), path.join(vendoredEngineDir, 'package.json'));
-
-  const vendoredBinAbs = path.join(vendoredEngineDir, 'bin', 'ghost-cto.mjs');
-  try {
-    fs.chmodSync(vendoredBinAbs, 0o755);
-  } catch {
-    // ignore
+  // 1. Vendor zero-dependency self-contained engine into `.vibe/engine/` (unless dogfooding GhostCTO on itself)
+  let cliBinAbs = path.join(GHOST_PACKAGE_ROOT, 'bin', 'ghost-cto.mjs');
+  if (!isSelfRepo) {
+    const vendoredEngineDir = path.join(absTarget, '.vibe', 'engine');
+    copyDirRecursive(path.join(GHOST_PACKAGE_ROOT, 'kernel'), path.join(vendoredEngineDir, 'kernel'));
+    copyDirRecursive(path.join(GHOST_PACKAGE_ROOT, 'bin'), path.join(vendoredEngineDir, 'bin'));
+    copyDirRecursive(pluginSrc, path.join(vendoredEngineDir, 'plugin'));
+    fs.copyFileSync(path.join(GHOST_PACKAGE_ROOT, 'package.json'), path.join(vendoredEngineDir, 'package.json'));
+    cliBinAbs = path.join(vendoredEngineDir, 'bin', 'ghost-cto.mjs');
   }
 
+  try {
+    fs.chmodSync(cliBinAbs, 0o755);
+  } catch (err) {
+    if (process.env.GHOST_DEBUG) console.error('[ghost-cto:chmod]', err.message);
+  }
+
+  const kernelImportBase = isSelfRepo ? '../kernel' : './engine/kernel';
   // Create deterministic Stop-hook verifier script (forces IDE agents to self-repair syntax/import/SQL/fake-button bugs before finishing, with 1-shot fingerprint guard so it NEVER loops infinitely!)
   const hookScriptPath = path.join(absTarget, '.vibe', 'ghost-hook-check.mjs');
   fs.writeFileSync(
@@ -124,11 +130,11 @@ export function installGhostCTO(targetRootDir, options = {}) {
       `import fs from 'node:fs';`,
       `import path from 'node:path';`,
       `import { fileURLToPath } from 'node:url';`,
-      `import { scanWorkspace } from './engine/kernel/scanner.mjs';`,
-      `import { runRealityAudit } from './engine/kernel/reality-audit.mjs';`,
-      `import { writeMemoryCapsule } from './engine/kernel/memory-capsule.mjs';`,
-      `import { generateBossDashboard } from './engine/kernel/boss-dashboard.mjs';`,
-      `import { verifyWorkspaceCode } from './engine/kernel/code-verifier.mjs';`,
+      `import { scanWorkspace } from '${kernelImportBase}/scanner.mjs';`,
+      `import { runRealityAudit } from '${kernelImportBase}/reality-audit.mjs';`,
+      `import { writeMemoryCapsule } from '${kernelImportBase}/memory-capsule.mjs';`,
+      `import { generateBossDashboard } from '${kernelImportBase}/boss-dashboard.mjs';`,
+      `import { verifyWorkspaceCode } from '${kernelImportBase}/code-verifier.mjs';`,
       ``,
       `const vibeDir = path.dirname(fileURLToPath(import.meta.url));`,
       `const rootDir = path.resolve(vibeDir, '..');`,
@@ -143,8 +149,8 @@ export function installGhostCTO(targetRootDir, options = {}) {
       `      if (parsed && parsed.stop_hook_active) stopHookActive = true;`,
       `    }`,
       `  }`,
-      `} catch {`,
-      `  // non-JSON or empty stdin`,
+      `} catch (err) {`,
+      `  stopHookActive = Boolean(err) && false;`,
       `}`,
       ``,
       `const ws = scanWorkspace(rootDir);`,
@@ -155,12 +161,12 @@ export function installGhostCTO(targetRootDir, options = {}) {
       `if (ws.codeFiles.length > 0) {`,
       `  const ver = verifyWorkspaceCode(rootDir);`,
       `  if (ver.ok) {`,
-      `    try { fs.rmSync(statePath, { force: true }); } catch {}`,
+      `    try { fs.rmSync(statePath, { force: true }); } catch (err) { void err; }`,
       `  } else {`,
       `    const newestMtime = ws.codeFiles.reduce((m, f) => Math.max(m, Math.round(f.mtimeMs)), 0);`,
       `    const fingerprint = newestMtime + '|' + ver.aiCompact;`,
       `    let prevFp = '';`,
-      `    try { prevFp = JSON.parse(fs.readFileSync(statePath, 'utf8')).lastBlockedFingerprint || ''; } catch {}`,
+      `    try { prevFp = JSON.parse(fs.readFileSync(statePath, 'utf8')).lastBlockedFingerprint || ''; } catch (err) { prevFp = err ? '' : ''; }`,
       `    if (!stopHookActive && prevFp !== fingerprint) {`,
       `      fs.writeFileSync(statePath, JSON.stringify({ lastBlockedFingerprint: fingerprint }, null, 2), 'utf8');`,
       `      process.stderr.write('\\n' + ver.aiFixPrompt + '\\n');`,
@@ -175,7 +181,7 @@ export function installGhostCTO(targetRootDir, options = {}) {
   // Use cwd-independent absolute engine + target paths so IDEs spawning from $HOME or / never fail!
   const ghostServerEntry = {
     command: 'node',
-    args: [vendoredBinAbs, 'mcp', '--dir', absTarget]
+    args: [cliBinAbs, 'mcp', '--dir', absTarget]
   };
 
   // 2. Universal / Codex / Antigravity Root `AGENTS.md` (100% byte-immutable for 90% KV Prefix Cache discount!)
@@ -274,7 +280,7 @@ export function installGhostCTO(targetRootDir, options = {}) {
 
   const capsuleInfo = writeMemoryCapsule(ws, audit);
   const dashboardInfo = generateBossDashboard(ws, audit);
-  const launcherInfo = generateSelfHealingLaunchers(ws);
+  const launcherInfo = generateSelfHealingLaunchers(ws, { skipRootLaunchers: isSelfRepo });
   installGitPreCommitGuard(absTarget);
 
   return {
@@ -329,13 +335,15 @@ function installGitPreCommitGuard(absTarget) {
 ${marker}
 if [ -f ".vibe/engine/bin/ghost-cto.mjs" ]; then
   node ".vibe/engine/bin/ghost-cto.mjs" precommit-check --dir "$(pwd)"
+elif [ -f "bin/ghost-cto.mjs" ]; then
+  node "bin/ghost-cto.mjs" precommit-check --dir "$(pwd)"
 fi
 `;
   fs.writeFileSync(hookPath, script, { encoding: 'utf8', mode: 0o755 });
   try {
     fs.chmodSync(hookPath, 0o755);
-  } catch {
-    // ignore
+  } catch (err) {
+    if (process.env.GHOST_DEBUG) console.error('[ghost-cto:precommit-chmod]', err.message);
   }
 }
 

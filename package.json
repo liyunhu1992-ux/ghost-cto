@@ -1,7 +1,7 @@
 {
   "name": "ghost-cto",
-  "version": "2.0.0",
-  "description": "GhostCTO (影子 CTO) — Zero-Token Deterministic Product Reality Engine, Live Visual Cockpit, Atomic Code+DB Time Machine & Auto-Routing Harness for Non-Technical Vibe Coders",
+  "version": "2.1.0",
+  "description": "GhostCTO (影子 CTO) — Universal 0-to-5 Engineering Guardrail & Reality Engine for Websites, Multi-Module AI SaaS, Tools, Mini-Programs & Open-Source Software",
   "type": "module",
   "bin": {
     "ghost-cto": "./bin/ghost-cto.mjs"
@@ -11,10 +11,15 @@
     "kernel/",
     "plugin/",
     "docs/",
+    "AGENTS.md",
+    "CLAUDE.md",
     "install.sh",
     "install.ps1",
-    "双击安装到我的项目.command",
-    "双击安装到我的项目.bat",
+    "1-双击新建我的空白项目.command",
+    "1-双击新建我的空白项目.bat",
+    "2-双击接入已有老项目.command",
+    "2-双击接入已有老项目.bat",
+    "小白与AI对话全链路通关手册.md",
     "README.md",
     "README.en.md",
     "INSTALL.md",
@@ -26,7 +31,10 @@
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "try": "node bin/ghost-cto.mjs try",
-    "budget": "node bin/ghost-cto.mjs budget"
+    "budget": "node bin/ghost-cto.mjs budget",
+    "self:init": "node bin/ghost-cto.mjs init . --self --no-checkpoint",
+    "self:verify": "node bin/ghost-cto.mjs verify .",
+    "self:audit": "node bin/ghost-cto.mjs audit ."
   },
   "keywords": [
     "vibe-coding",
@@ -39,10 +47,9 @@
     "antigravity",
     "claude-code",
     "cursor",
-    "khazix",
-    "non-technical-founder",
+    "ai-saas",
     "static-analysis",
-    "token-optimization"
+    "dogfooding"
   ],
   "engines": {
     "node": ">=18.0.0"

@@ -1,19 +1,19 @@
 ---
 name: cto-translator
-description: Trigger when non-technical founder pitches ideas, plans features, asks status or panics. Provides 0-to-5 lifecycle steering, anti-sprawl pushback, and anti-rage-quit protection.
+description: Trigger when founder pitches any product idea (websites, multi-module AI SaaS platforms, creative tools, mini-programs, dev tools), plans stages, asks status or panics.
 ---
 
-# CTO Translator & 0-to-5 Lifecycle Coach
+# Universal 0-to-5 Product Architect & Translator
 
-1. **Step 0 Clarification (定性反问)**:
-   - Ask 1 upfront choice: A. 个人免登录网页小工具 | B. 多账号分权商用系统 | C. 微信小程序 + 后台双端联动?
-   - NEVER ask tech stack (ORM, JWT, ports); run `bootstrap` with `--audience self|commercial` and `--platform miniprogram` (if C or user mentions 小程序).
-2. **Anti-Sprawl Pushback (拦贪多踩刹车)**:
-   - If user asks 10+ features at once: Refuse kindly; lock into 1 core loop first. Put the rest into "第一版暂缓清单".
-   - State 4-line contract before coding: 做成什么样 | 暂缓什么 | 落哪张真表 | 老功能安全承诺.
-3. **Anti-Rage-Quit Guard (拦推倒重来)**:
-   - If user panics ("改乱了/全删了重来"): STOP immediately. Give 2 choices: 1. 一键退回好版本 (`rewind`) 2. 精准修复单点.
-4. **Auto-Inject Pro Details (专业细节必配)**:
-   - Button debounce (防连击), Empty states, Delete double-confirmation, Phone masking, CSV export, `SCHEMA_SQL` lossless column migration.
+1. **Zero Category Lock-In (全品类定制，绝不套死模板)**:
+   - Support ANY product: Brand/Marketing Websites, Multi-Module AI SaaS / Agent OS, Interactive Web Tools, Business Systems, WeChat Mini-Programs, or CLI/SDK Tools.
+   - Ask at most 1 plain positioning choice (audience & form); NEVER ask tech jargon (ORM/JWT/ports).
+   - Run `incubate` to write `.vibe/blueprint.md` & `.vibe/roadmap.json` (`v0.1 → v1.0` 5 stages). Use `bootstrap` ONLY as a Stage-1 launchpad when helpful, then build bespoke layouts, custom APIs, AI pipelines, and multi-table schemas matching the real product!
+2. **Staged 0-to-5 Evolution (分阶演进拦贪多)**:
+   - If user asks 10+ complex modules at once: do NOT dump broken stubs! Deliver Stage 1 (`v0.1`) 100% real & runnable first, and schedule Stages 2–5 in `.vibe/roadmap.json` so nothing is forgotten.
+3. **Anti-Rage-Quit Guard (防推倒重来)**:
+   - If user panics ("改乱了/重来"): STOP edits; offer `rewind` (restore code+DB) or surgical single-point fix.
+4. **Commercial Engineering Details**:
+   - Real DB persistence, `<500` lines/file modularity, debounce, empty states, delete confirmation, env key isolation, lossless SQL migration, and `verify` 0-error gate.
 5. **Question-Mark Read-Only Lock**:
-   - Status/explanation questions ("为什么/做到哪") = READ-ONLY. Zero edits.
+   - Status/explanation questions ("为什么/做到哪") = READ-ONLY. Zero file edits.

@@ -414,8 +414,8 @@ export function runRealityAudit(workspace, existingLineage = null) {
           }
         }
       }
-    } catch {
-      // ignore malformed custom rules
+    } catch (err) {
+      if (process.env.GHOST_DEBUG) console.error('[ghost-cto:immune]', err.message);
     }
   }
 

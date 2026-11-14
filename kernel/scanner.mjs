@@ -193,8 +193,8 @@ function buildWorkspacePackageMap(absRoot, packageJsons) {
           entryAbsPath: fs.existsSync(entryCandidate) ? entryCandidate : null
         });
       }
-    } catch {
-      // ignore malformed package.json
+    } catch (err) {
+      if (process.env.GHOST_DEBUG) console.error('[ghost-cto:scanner]', err.message);
     }
   }
   return map;

@@ -3,6 +3,10 @@ import path from 'node:path';
 import { listCheckpoints } from './time-capsule.mjs';
 import { detectRuntimeTopology } from './memory-capsule.mjs';
 import { buildMasterPromptArsenal } from './prompt-arsenal.mjs';
+import { buildDashboardCss, buildSosPanelHtml, buildDashboardClientJs } from './dashboard-assets.mjs';
+import { generateSelfHealingLaunchers } from './launcher-scripts.mjs';
+
+export { generateSelfHealingLaunchers };
 
 function escHtml(str) {
   return String(str ?? '')
@@ -20,16 +24,14 @@ function updateAndReadScoreHistory(rootDir, currentScore) {
   if (fs.existsSync(histPath)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(histPath, 'utf8'));
-      if (typeof parsed.firstScore === 'number') {
-        hist.firstScore = parsed.firstScore;
-      }
+      if (typeof parsed.firstScore === 'number') hist.firstScore = parsed.firstScore;
       if (typeof parsed.currentScore === 'number' && parsed.currentScore !== currentScore) {
         hist.previousScore = parsed.currentScore;
       } else if (typeof parsed.previousScore === 'number') {
         hist.previousScore = parsed.previousScore;
       }
-    } catch {
-      // ignore malformed history
+    } catch (err) {
+      hist = { firstScore: currentScore, previousScore: currentScore, currentScore, resetReason: Boolean(err) };
     }
   }
   hist.currentScore = currentScore;
@@ -38,13 +40,50 @@ function updateAndReadScoreHistory(rootDir, currentScore) {
   return hist;
 }
 
+function readOptionalRoadmap(rootDir) {
+  const rmPath = path.join(rootDir, '.vibe', 'roadmap.json');
+  if (!fs.existsSync(rmPath)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(rmPath, 'utf8'));
+  } catch (err) {
+    return err ? null : null;
+  }
+}
+
+function buildStarterCanvasHtml() {
+  return `<div class="finding-card" style="border-left: 5px solid #059669; background: #F0FDF4;">
+    <h3 class="finding-title" style="font-size: 18px; color: #065F46;">🌱 全品类零碎想法孵化器：不限品类，网站、AI SaaS 平台、工具、小程序都能从 0 做到 5</h3>
+    <p class="finding-desc" style="color: #064E3B;">说不清楚技术细节没关系！输入你想做的任何产品（独立品牌官网、多模块 AI 创作/矩阵系统、在线互动工具、业务后台、微信小程序等），GhostCTO 会先拆出 <code>0 → 5</code> 演进蓝图，并在全程用确定性代码守住真落库与 0 报错底线：</p>
+    <div class="filter-row" style="margin-bottom: 8px;">
+      <button type="button" class="filter-pill" onclick="fillStarterIdea('摄影设计工作室品牌展示官网与预约咨询')">🌐 示例1：品牌展示官网</button>
+      <button type="button" class="filter-pill" onclick="fillStarterIdea('多平台 AI 内容矩阵与智能体工作台系统')">🤖 示例2：多模块 AI SaaS 平台</button>
+      <button type="button" class="filter-pill" onclick="fillStarterIdea('在线图文排版与数据转换效率工具')">⚡ 示例3：在线效率工具</button>
+      <button type="button" class="filter-pill" onclick="fillStarterIdea('门店会员预约与微信小程序双端系统')">📱 示例4：业务系统 + 小程序</button>
+    </div>
+    <input id="starter-idea-input" class="topic-input" style="background:#FFF; border-color:#86EFAC;" type="text" placeholder="✍️ 用大白话写下你想做的任何网站、AI 平台、效率工具或小程序..." />
+    <div class="filter-row" style="margin-top: 10px; align-items: center;">
+      <span style="font-size:13px; font-weight:700; color:#065F46;">👥 目标使用对象：</span>
+      <label style="font-size:13px; cursor:pointer;"><input type="radio" name="starter-audience" value="self" checked /> 个人自用（免登录直达）</label>
+      <label style="font-size:13px; cursor:pointer;"><input type="radio" name="starter-audience" value="team" /> 团队 / 多租户商用（含登录鉴权）</label>
+      <label style="font-size:13px; cursor:pointer;"><input type="radio" name="starter-audience" value="public" /> 面向访客公开展示与留资</label>
+    </div>
+    <div style="margin-top: 14px; display:flex; gap:10px; flex-wrap:wrap;">
+      <button type="button" class="live-only-btn" style="display:none; background:#2563EB; padding: 10px 16px; font-size: 13.5px;" onclick="livePreviewIncubate()">🪄 第1步：生成 0→5 专属产品蓝图 (0 Token)</button>
+      <button type="button" class="live-only-btn" style="display:none; background:#059669; padding: 10px 18px; font-size: 13.5px;" onclick="liveBootstrapGoldenApp()">🚀 第2步：铺设可运行全栈工程起点（可选）</button>
+      <button type="button" class="copy-btn" style="padding: 10px 16px; font-size: 13.5px;" onclick="copyZeroToOneKickoff()">📋 复制「全品类定制开局指令」发给 AI</button>
+    </div>
+    <div id="incubate-preview-box" class="impact-result" style="border-color:#86EFAC; background:#FFFFFF;"></div>
+  </div>`;
+}
+
 /**
- * Generate a standalone, dual-mode (Offline `file://` + Live `http://127.0.0.1` 0-Token Interactive)
- * zero-jargon Chinese visual HTML cockpit (`老板全景驾驶舱.html`).
+ * Generate standalone, dual-mode (Offline `file://` + Live `http://127.0.0.1` 0-Token Interactive)
+ * visual HTML report (`.vibe/项目体检报告.html` and `.vibe/boss-dashboard.html`).
  */
 export function generateBossDashboard(workspace, audit) {
   const runtime = detectRuntimeTopology(workspace);
   const checkpoints = listCheckpoints(workspace.rootDir);
+  const roadmap = readOptionalRoadmap(workspace.rootDir);
   const chains = audit.lineage.chains;
   const masterPrompts = buildMasterPromptArsenal(workspace, audit, '');
   const masterTemplates = buildMasterPromptArsenal(workspace, audit, '__BOSS_TOPIC__');
@@ -54,20 +93,18 @@ export function generateBossDashboard(workspace, audit) {
   const fakeOrWarnCount = chains.filter(c => c.badge.startsWith('🟡')).length;
   const brokenCount = chains.filter(c => c.badge.startsWith('🔴')).length;
 
-  const scoreColor =
-    audit.p0Count > 0 ? '#DC2626' : audit.score >= 85 ? '#059669' : '#D97706';
-  const scoreBg =
-    audit.p0Count > 0 ? '#FEF2F2' : audit.score >= 85 ? '#ECFDF5' : '#FFFBEB';
+  const scoreColor = audit.p0Count > 0 ? '#DC2626' : audit.score >= 85 ? '#059669' : '#D97706';
+  const scoreBg = audit.p0Count > 0 ? '#FEF2F2' : audit.score >= 85 ? '#ECFDF5' : '#FFFBEB';
 
   const deltaFromFirst = audit.score - scoreHist.firstScore;
   const scoreDeltaHtml =
     deltaFromFirst > 0
-      ? `<div class="score-delta">📈 较初检跃升 +${deltaFromFirst} 分（初检 ${scoreHist.firstScore} 分）</div>`
+      ? `<div class="score-delta">📈 较初检提升 +${deltaFromFirst} 分（初检 ${scoreHist.firstScore} 分）</div>`
       : '';
 
   const shareCertificateText = [
-    `🛡️ 【${runtime.projectName} · 影子 CTO (GhostCTO) 商用体检战报】`,
-    `📊 商用健康总分：${audit.score} / 100 分${deltaFromFirst > 0 ? `（较初检提升 +${deltaFromFirst} 分）` : ''}`,
+    `🛡️ 【${runtime.projectName} · 影子 CTO (GhostCTO) 工程体检报告】`,
+    `📊 工程健康总分：${audit.score} / 100 分${deltaFromFirst > 0 ? `（较初检提升 +${deltaFromFirst} 分）` : ''}`,
     `🚦 上线安检结论：${audit.launchVerdict}`,
     `🔬 全栈真假穿透：🟢 真通落库 ${realCount} 条 ｜ 🗄️ 真实数据表 ${audit.lineage.schemaTables.length} 张 ｜ 🔴 404断头路 ${brokenCount} 条`,
     `⚡ 由开源项目 GhostCTO（影子 CTO）0-Token 本地确定性引擎验真生成`
@@ -76,53 +113,39 @@ export function generateBossDashboard(workspace, audit) {
   const portLinksHtml =
     runtime.ports.length > 0
       ? runtime.ports
-          .map(
-            p =>
-              `<a class="port-pill" href="http://127.0.0.1:${p}" target="_blank" rel="noopener">🌐 打开业务端口 :${p}</a>`
-          )
+          .map(p => `<a class="port-pill" href="http://127.0.0.1:${p}" target="_blank" rel="noopener">🌐 打开业务端口 :${p}</a>`)
           .join('')
-      : `<span class="muted">自动端口（双击项目文件夹内的「双击启动项目」即可自动打开网页）</span>`;
+      : `<span class="muted">无常驻业务端口或自动分配端口</span>`;
 
   const isZeroCodeStarter = workspace.codeFiles.length === 0;
   const displayVerdict = isZeroCodeStarter
-    ? '🌱 零基础起飞画布已就绪！8 大 AI 软件防崩护栏已装好，在下方写一句你的想法即可开启第一次 Vibe Coding！'
+    ? '🌱 零基础起飞画布已就绪！8 大 AI 软件防崩护栏已装好，网站 / AI SaaS / 工具 / 小程序均可直接开建！'
     : audit.launchVerdict;
 
+  const roadmapHtml =
+    roadmap && Array.isArray(roadmap.stages)
+      ? `<div class="roadmap-bar">
+          <div style="font-size:13.5px; font-weight:700;">🗺️ 0 → 5 持续演进路线图（形态：${escHtml(roadmap.archetypeLabel || roadmap.productKind || '全品类定制')}）</div>
+          <div class="roadmap-steps">
+            ${roadmap.stages
+              .map(
+                (st, i) =>
+                  `<div class="rm-step ${i === 0 ? 'active' : ''}"><strong>${escHtml(st.stage)}</strong> · ${escHtml(st.name)}</div>`
+              )
+              .join('')}
+          </div>
+        </div>`
+      : '';
+
   const findingsHtml = isZeroCodeStarter
-    ? `<div class="finding-card" style="border-left: 5px solid #059669; background: #F0FDF4;">
-        <h3 class="finding-title" style="font-size: 18px; color: #065F46;">🌱 零碎想法孵化器：哪怕只有几个字的模糊念头，也能带你零出错做出来！</h3>
-        <p class="finding-desc" style="color: #064E3B;">说不清楚需求完全没关系！随便输入几个字（比如“管美甲会员次数”、“记账”、“背单词”、“小红书选题”），选一下给谁用，GhostCTO 会自动帮你拆清功能、设计好真实数据库，还能<strong>一键铺好 97 分零出错可运行底座</strong>（免配环境、防白屏、自带报错秒修条）：</p>
-        <div class="filter-row" style="margin-bottom: 8px;">
-          <button type="button" class="filter-pill" onclick="fillStarterIdea('管美甲店客户预约与次卡')">💡 示例1：管客户次卡</button>
-          <button type="button" class="filter-pill" onclick="fillStarterIdea('门店日常收支与库存记账')">💡 示例2：记账管库存</button>
-          <button type="button" class="filter-pill" onclick="fillStarterIdea('背单词与每日习惯打卡')">💡 示例3：学习打卡</button>
-          <button type="button" class="filter-pill" onclick="fillStarterIdea('小红书爆款选题与文案库')">💡 示例4：选题灵感库</button>
-        </div>
-        <input id="starter-idea-input" class="topic-input" style="background:#FFF; border-color:#86EFAC;" type="text" placeholder="✍️ 随便写几个字你的零碎想法（越口语越简单越好）..." />
-        <div class="filter-row" style="margin-top: 10px; align-items: center;">
-          <span style="font-size:13px; font-weight:700; color:#065F46;">👥 这个小工具谁来用：</span>
-          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="starter-audience" value="self" checked /> 就我自己用（免登录最省心）</label>
-          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="starter-audience" value="team" /> 团队/店员一起用</label>
-          <label style="font-size:13px; cursor:pointer;"><input type="radio" name="starter-audience" value="public" /> 给客户看/填表</label>
-        </div>
-        <div style="margin-top: 14px; display:flex; gap:10px; flex-wrap:wrap;">
-          <button type="button" class="live-only-btn" style="display:none; background:#2563EB; padding: 10px 16px; font-size: 13.5px;" onclick="livePreviewIncubate()">🪄 第1步：帮我把模糊想法拆清楚 (0 Token)</button>
-          <button type="button" class="live-only-btn" style="display:none; background:#059669; padding: 10px 18px; font-size: 13.5px;" onclick="liveBootstrapGoldenApp()">🚀 第2步：一键生成「97分零出错真项目底座」（免写代码直接能跑！）</button>
-          <button type="button" class="copy-btn" style="padding: 10px 16px; font-size: 13.5px;" onclick="copyZeroToOneKickoff()">📋 复制「模糊想法引导开局指令」发给 AI</button>
-        </div>
-        <div id="incubate-preview-box" class="impact-result" style="border-color:#86EFAC; background:#FFFFFF;"></div>
-      </div>`
+    ? buildStarterCanvasHtml()
     : audit.findings.length === 0
-      ? `<div class="empty-ok">🎉 太稳了！当前没有检测到假数据、空吞报错、裸奔管理接口或断头按钮，可以放心体验和交付。</div>`
+      ? `<div class="empty-ok">🎉 当前没有检测到假数据、空吞报错、裸奔管理接口或断头按钮，工程状态健康。</div>`
       : audit.findings
           .map((f, idx) => {
             const sevClass = f.severity === 'P0' ? 'sev-p0' : f.severity === 'P1' ? 'sev-p1' : 'sev-p2';
             const sevLabel =
-              f.severity === 'P0'
-                ? '🔴 致命阻断（上线前必改）'
-                : f.severity === 'P1'
-                ? '🟠 高危隐患（强烈建议修）'
-                : '🔵 结构优化提醒';
+              f.severity === 'P0' ? '🔴 致命阻断（上线前必改）' : f.severity === 'P1' ? '🟠 高危隐患（建议修复）' : '🔵 结构优化提醒';
             return `
             <div class="finding-card ${sevClass}">
               <div class="finding-head">
@@ -133,8 +156,8 @@ export function generateBossDashboard(workspace, audit) {
                 <button class="copy-btn" data-copy="${escHtml(f.oneClickPrompt)}">📋 一键复制修复话术（发给 AI）</button>
               </div>
               <h3 class="finding-title">${idx + 1}. ${escHtml(f.title)}</h3>
-              <p class="finding-desc"><strong>对生意的实际影响：</strong>${escHtml(f.founderImpact)}</p>
-              <div class="prompt-preview">💬 发送给 WorkBuddy / 豆包 / Antigravity 的话术：「${escHtml(f.oneClickPrompt)}」</div>
+              <p class="finding-desc"><strong>实际影响：</strong>${escHtml(f.founderImpact)}</p>
+              <div class="prompt-preview">💬 发送给 AI 的话术：「${escHtml(f.oneClickPrompt)}」</div>
             </div>`;
           })
           .join('\n');
@@ -162,13 +185,13 @@ export function generateBossDashboard(workspace, audit) {
             <span class="sev-tag sev-master">${escHtml(mp.badge)}</span>
             <span class="file-loc">${escHtml(mp.inspiration)}</span>
           </div>
-          <button class="copy-btn master-copy-btn" data-copy="${escHtml(mp.prompt)}" data-template="${escHtml(tplObj.prompt)}">📋 一键复制大师指令（已注入本项目家底）</button>
+          <button class="copy-btn master-copy-btn" data-copy="${escHtml(mp.prompt)}" data-template="${escHtml(tplObj.prompt)}">📋 一键复制指令（已注入本项目家底）</button>
         </div>
         <h3 class="finding-title">${idx + 1}. ${escHtml(mp.title)}</h3>
         <p class="finding-desc"><strong>什么时候用：</strong>${escHtml(mp.whenToUse)}</p>
         <p class="finding-desc" style="margin-top:-4px;"><strong>为什么管用：</strong>${escHtml(mp.whyItWorks)}</p>
         <details class="prompt-details">
-          <summary>👀 点击展开查看完整指令内容（已自动带入 ${escHtml(runtime.projectName)} 的数据表与打包护栏）</summary>
+          <summary>👀 点击展开查看完整指令内容（已带入 ${escHtml(runtime.projectName)} 的数据表与架构护栏）</summary>
           <pre class="prompt-raw">${escHtml(mp.prompt)}</pre>
         </details>
       </div>`;
@@ -201,217 +224,14 @@ export function generateBossDashboard(workspace, audit) {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escHtml(runtime.projectName)} · 影子 CTO 真假与安全体检报告</title>
-  <style>
-    :root {
-      --bg: #F8F7F4;
-      --surface: #FFFFFF;
-      --text: #18181B;
-      --muted: #64646E;
-      --border: #E6E4DF;
-      --primary: #18181B;
-      --accent: #2563EB;
-      --green: #059669;
-      --amber: #D97706;
-      --red: #DC2626;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      padding: 24px 20px 64px;
-      -webkit-font-smoothing: antialiased;
-    }
-    .container { max-width: 1120px; margin: 0 auto; }
-    .mode-bar {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 16px;
-      margin-bottom: 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      font-size: 13px;
-    }
-    .mode-badge-offline { color: var(--muted); font-weight: 600; }
-    .mode-badge-live { color: var(--green); font-weight: 700; }
-    .hero {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 26px 28px;
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 20px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.03);
-      margin-bottom: 20px;
-    }
-    .hero-left h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 6px; }
-    .hero-sub { font-size: 14px; color: var(--muted); margin-bottom: 12px; }
-    .port-list { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-    .port-pill {
-      display: inline-flex; align-items: center; padding: 6px 13px; border-radius: 999px;
-      background: #EFF6FF; color: #1D4ED8; font-size: 13px; font-weight: 600; text-decoration: none;
-      border: 1px solid #BFDBFE;
-    }
-    .port-pill:hover { background: #DBEAFE; }
-    .score-box {
-      background: ${scoreBg};
-      border: 1px solid ${scoreColor}33;
-      border-radius: 14px;
-      padding: 16px 24px;
-      text-align: center;
-      min-width: 220px;
-    }
-    .score-num { font-size: 38px; font-weight: 800; color: ${scoreColor}; font-variant-numeric: tabular-nums; line-height: 1.1; }
-    .score-label { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
-    .score-delta {
-      margin-top: 6px; display: inline-block; background: #ECFDF5; color: #065F46;
-      border: 1px solid #A7F3D0; border-radius: 999px; padding: 2px 10px; font-size: 11.5px; font-weight: 700;
-    }
-    .verdict-banner {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-left: 5px solid ${scoreColor};
-      border-radius: 12px;
-      padding: 14px 18px;
-      font-size: 14.5px;
-      font-weight: 600;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-      gap: 14px;
-      margin-bottom: 22px;
-    }
-    .kpi-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 16px 18px;
-    }
-    .kpi-val { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .kpi-name { font-size: 13px; color: var(--muted); margin-top: 2px; }
-    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-    .tab-btn {
-      padding: 9px 16px; border-radius: 10px; border: 1px solid var(--border);
-      background: var(--surface); color: var(--muted); font-size: 14px; font-weight: 600;
-      cursor: pointer; transition: all 0.15s ease;
-    }
-    .tab-btn.active { background: var(--primary); color: #FFF; border-color: var(--primary); }
-    .panel { display: none; }
-    .panel.active { display: block; }
-    .finding-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 18px 20px;
-      margin-bottom: 14px;
-    }
-    .finding-card.sev-p0 { border-left: 5px solid var(--red); }
-    .finding-card.sev-p1 { border-left: 5px solid var(--amber); }
-    .finding-card.sev-p2 { border-left: 5px solid var(--accent); }
-    .finding-card.prompt-card { border-left: 5px solid #18181B; }
-    .finding-head {
-      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;
-    }
-    .sev-tag { font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 6px; }
-    .sev-tag.sev-p0 { background: #FEF2F2; color: var(--red); }
-    .sev-tag.sev-p1 { background: #FFFBEB; color: var(--amber); }
-    .sev-tag.sev-p2 { background: #EFF6FF; color: var(--accent); }
-    .sev-tag.sev-master { background: #F4F4F5; color: #18181B; border: 1px solid #E4E4E7; }
-    .file-loc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); margin-left: 8px; }
-    .finding-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-    .finding-desc { font-size: 14px; color: #3F3F46; margin-bottom: 10px; }
-    .prompt-preview {
-      background: #F4F4F5; border-radius: 8px; padding: 9px 12px; font-size: 12.5px; color: #52525B;
-    }
-    .arsenal-hero {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
-      padding: 18px 20px; margin-bottom: 16px;
-    }
-    .topic-input {
-      width: 100%; padding: 11px 14px; border-radius: 10px; border: 1px solid #D4D4D8;
-      font-size: 14px; margin-top: 10px; background: #FAFAF9; color: var(--text);
-    }
-    .topic-input:focus { outline: 2px solid var(--accent); border-color: transparent; background: #FFF; }
-    .filter-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .filter-pill {
-      padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border);
-      background: #F4F4F5; color: var(--muted); font-size: 12.5px; font-weight: 600; cursor: pointer;
-    }
-    .filter-pill.active { background: var(--primary); color: #FFF; border-color: var(--primary); }
-    .prompt-details { margin-top: 8px; background: #FAFAF9; border: 1px solid var(--border); border-radius: 9px; padding: 8px 12px; }
-    .prompt-details summary { font-size: 12.5px; font-weight: 600; color: var(--accent); cursor: pointer; }
-    .prompt-raw {
-      margin-top: 10px; white-space: pre-wrap; word-break: break-word; font-size: 12.5px;
-      line-height: 1.55; color: #27272A; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", monospace;
-    }
-    .copy-btn, .live-action-btn, .live-only-btn {
-      background: var(--primary); color: #FFF; border: none; border-radius: 8px;
-      padding: 7px 13px; font-size: 12.5px; font-weight: 600; cursor: pointer;
-    }
-    .live-action-btn { background: var(--green); }
-    .live-rewind-btn { background: #DC2626; }
-    .copy-btn:hover, .live-action-btn:hover, .live-only-btn:hover { opacity: 0.9; }
-    .ghost-btn { background: #F4F4F5; color: var(--text); border: 1px solid var(--border); }
-    .live-box {
-      background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 14px;
-      padding: 16px 18px; margin-bottom: 16px; display: none;
-    }
-    .live-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
-    .live-row input {
-      flex: 1; min-width: 240px; padding: 9px 12px; border-radius: 8px; border: 1px solid #A7F3D0; font-size: 13.5px;
-    }
-    .impact-result {
-      margin-top: 12px; background: #FFF; border: 1px solid var(--border); border-radius: 10px;
-      padding: 12px 14px; font-size: 13px; white-space: pre-wrap; display: none;
-    }
-    .table-wrap {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow-x: auto;
-    }
-    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { background: #FAFAF9; font-weight: 600; color: var(--muted); font-size: 12.5px; }
-    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: #F4F4F5; padding: 2px 6px; border-radius: 5px; }
-    .muted-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: var(--muted); }
-    .cp-row {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-      padding: 14px 18px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
-    }
-    .cp-meta { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
-    .ide-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .ide-pill { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; padding: 5px 11px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
-    .dict-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-    .dict-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
-    .dict-card h4 { font-size: 15px; margin-bottom: 6px; }
-    .empty-ok { background: #ECFDF5; border: 1px solid #A7F3D0; color: #065F46; padding: 20px; border-radius: 14px; font-weight: 600; }
-    .empty-note { background: var(--surface); border: 1px solid var(--border); padding: 18px; border-radius: 12px; }
-    .toast {
-      position: fixed; bottom: 24px; right: 24px; background: #18181B; color: #FFF;
-      padding: 11px 18px; border-radius: 10px; font-size: 13.5px; font-weight: 600;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.18); display: none; z-index: 999;
-    }
-  </style>
+  <style>${buildDashboardCss(scoreBg, scoreColor)}</style>
 </head>
 <body>
   <div class="container">
     <div class="mode-bar">
       <span id="live-status-text" class="mode-badge-offline">📄 离线体检报告快照（日常直接在 AI 聊天框说大白话即可自动驱动全套保护）</span>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button id="btn-live-verify" class="live-only-btn" style="display:none; background:#2563EB;" onclick="liveVerifyCode()">✅ 0-Token 语法与零出错全检</button>
+        <button id="btn-live-verify" class="live-only-btn" style="display:none; background:#2563EB;" onclick="liveVerifyCode()">✅ 0-Token 语法与契约全检</button>
         <button id="btn-live-audit" class="live-action-btn" style="display:none;" onclick="liveRunAudit()">🔄 0-Token 立即重新体检刷新分数</button>
         <button class="copy-btn ghost-btn" data-copy="${escHtml(shareCertificateText)}">🏅 复制项目体检战报</button>
       </div>
@@ -420,7 +240,7 @@ export function generateBossDashboard(workspace, audit) {
     <div class="hero">
       <div class="hero-left">
         <h1>🛡️ ${escHtml(runtime.projectName)} · 项目真假与安全体检报告</h1>
-        <div class="hero-sub">本地确定性引擎 0-Token 扫描结果：核验按钮真假落库、语法错误与上线安全防线。</div>
+        <div class="hero-sub">本地确定性引擎 0-Token 扫描结果：核验按钮真假落库、语法依赖错误与上线安全防线。</div>
         <div class="port-list">${portLinksHtml}</div>
       </div>
       <div class="score-box">
@@ -432,8 +252,10 @@ export function generateBossDashboard(workspace, audit) {
 
     <div class="verdict-banner">
       <span>🚦 上线安检结论：${escHtml(displayVerdict)}</span>
-      <button class="copy-btn" data-copy="请读取项目里的体检结果，先存一个时光机备份，然后按优先级帮我修好所有 P0 致命问题，不要改动正常业务！">🚀 复制「一键全自动排雷」总指令</button>
+      <button class="copy-btn" data-copy="请读取项目里的体检结果，先存一个时光机备份，然后按优先级帮我修好所有 P0 致命问题，不要改动正常业务！">🚀 复制「一键排雷修复」总指令</button>
     </div>
+
+    ${roadmapHtml}
 
     <div class="kpi-grid">
       <div class="kpi-card">
@@ -462,20 +284,18 @@ export function generateBossDashboard(workspace, audit) {
       <button class="tab-btn" onclick="switchTab('sos', this)">🆘 小白英文弹窗 & 打不开急救卡</button>
     </div>
 
-    <div id="panel-risks" class="panel active">
-      ${findingsHtml}
-    </div>
+    <div id="panel-risks" class="panel active">${findingsHtml}</div>
 
     <div id="panel-prompts" class="panel">
       <div class="arsenal-hero">
         <h3 class="finding-title">✨ 卡兹克 (KKKKhazix) & Karpathy 实战防崩指令库（0 平时 Token 消耗 · 已自动注入本项目家底）</h3>
-        <p class="finding-desc" style="margin-bottom: 4px;">不用自己背提示词！在下面框里用一句大白话写下你想干的事（不填也能直接复制），点任意卡片的按钮，就会把<strong>你的想法 + 本项目真实数据表与防崩护栏</strong>一起打包复制好，直接粘贴进 WorkBuddy / 豆包 / Trae / Antigravity 即可：</p>
-        <input id="boss-topic-input" class="topic-input" type="text" placeholder="✍️ 选填：在这里输入一句你的想法（例如：加一个客户积分兑换功能 / 把管理后台界面改高级一点）..." />
+        <p class="finding-desc" style="margin-bottom: 4px;">不用自己背提示词！在下面框里用一句大白话写下你想干的事（不填也能直接复制），点任意卡片按钮，就会把<strong>你的想法 + 本项目真实数据表与防崩护栏</strong>一起打包复制好：</p>
+        <input id="boss-topic-input" class="topic-input" type="text" placeholder="✍️ 选填：输入你想加的任何页面或模块（如：新增智能体工作流编排页 / 新增官网案例画廊）..." />
         <div class="filter-row">
           <button class="filter-pill active" onclick="filterPrompts('all', this)">全部精选 (${masterPrompts.length})</button>
           <button class="filter-pill" onclick="filterPrompts('khazix', this)">🔥 卡兹克实战方法论 (4)</button>
           <button class="filter-pill" onclick="filterPrompts('engineering', this)">🔪 Karpathy 防崩与死循环破局 (2)</button>
-          <button class="filter-pill" onclick="filterPrompts('design', this)">🎨 去 AI 塑料味高定界面与文案 (2)</button>
+          <button class="filter-pill" onclick="filterPrompts('design', this)">🎨 去 AI 塑料味克制界面与文案 (2)</button>
         </div>
       </div>
       ${masterPromptsHtml}
@@ -483,28 +303,18 @@ export function generateBossDashboard(workspace, audit) {
 
     <div id="panel-lineage" class="panel">
       <div id="live-impact-box" class="live-box">
-        <strong>🔍 中文按钮 / 功能爆炸半径 0-Token 实时反查器</strong>
-        <p style="font-size:13px; color:#065F46; margin-top:2px;">输入界面上的任意中文按钮名或模块词（例如“导出订单”、“门店设置”），50 毫秒查出它连着哪个页面、哪个接口、哪张表：</p>
+        <strong>🔍 中文按钮 / 模块爆炸半径 0-Token 实时反查器</strong>
+        <p style="font-size:13px; color:#065F46; margin-top:2px;">输入界面上的任意中文按钮名或模块词，毫秒级查出它连着哪个页面、哪个接口、哪张表：</p>
         <div class="live-row">
-          <input id="live-impact-input" type="text" placeholder="输入界面中文按钮文字或接口词..." />
+          <input id="live-impact-input" type="text" placeholder="输入界面中文按钮文字或模块词..." />
           <button class="live-action-btn" onclick="liveQueryImpact()">🔍 立即反查影响范围</button>
         </div>
         <div id="live-impact-result" class="impact-result"></div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>真假状态</th>
-              <th>业务接口</th>
-              <th>真实数据去向</th>
-              <th>大白话解读</th>
-              <th>代码追踪坐标</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${chainsRowsHtml}
-          </tbody>
+          <thead><tr><th>真假状态</th><th>业务接口</th><th>真实数据去向</th><th>大白话解读</th><th>代码追踪坐标</th></tr></thead>
+          <tbody>${chainsRowsHtml}</tbody>
         </table>
       </div>
     </div>
@@ -513,273 +323,29 @@ export function generateBossDashboard(workspace, audit) {
       <div id="live-save-box" class="live-box">
         <strong>⚡ 实时时光机控制台（0 Token 本地毫秒级双备份：Git 代码 + SQLite 数据库）</strong>
         <div class="live-row">
-          <input id="live-save-label" type="text" placeholder="输入存档备注（例如：改首页配色前安全备份）..." />
+          <input id="live-save-label" type="text" placeholder="输入存档备注（例如：新增智能体模块前安全备份）..." />
           <button class="live-action-btn" onclick="liveSaveCheckpoint()">📦 立即创建代码+数据库双备份</button>
         </div>
       </div>
       <div class="finding-card" style="margin-bottom: 18px;">
         <h3 class="finding-title">🔄 国内外 8 大 AI 编程软件已无缝打通（含 Git 提交防泄密门禁）</h3>
-        <p class="finding-desc">本项目已写入统一记忆胶囊（<code>.vibe/capsule.md</code>）、原生规则与 Git 密钥防泄露钩子。哪怕某个软件额度用完了，直接用下面任意软件打开同一个文件夹就能无缝接着做：</p>
+        <p class="finding-desc">本项目已写入统一记忆胶囊（<code>.vibe/capsule.md</code>）、原生规则与 Git 密钥防泄露钩子。任意软件额度用完，直接换另一个软件打开同一文件夹就能接着做：</p>
         <div class="ide-badges">
-          <span class="ide-pill">✅ 腾讯 WorkBuddy</span>
-          <span class="ide-pill">✅ 腾讯 CodeBuddy</span>
-          <span class="ide-pill">✅ 豆包编程 / 字节 Trae</span>
-          <span class="ide-pill">✅ Google Antigravity</span>
-          <span class="ide-pill">✅ Cursor</span>
-          <span class="ide-pill">✅ Claude Code</span>
-          <span class="ide-pill">✅ Windsurf</span>
-          <span class="ide-pill">✅ OpenAI Codex</span>
+          <span class="ide-pill">✅ 腾讯 WorkBuddy</span><span class="ide-pill">✅ 腾讯 CodeBuddy</span>
+          <span class="ide-pill">✅ 豆包编程 / 字节 Trae</span><span class="ide-pill">✅ Google Antigravity</span>
+          <span class="ide-pill">✅ Cursor</span><span class="ide-pill">✅ Claude Code</span>
+          <span class="ide-pill">✅ Windsurf</span><span class="ide-pill">✅ OpenAI Codex</span>
         </div>
       </div>
       <h3 style="margin-bottom: 12px; font-size: 16px;">📦 代码 + 数据库双轨时光机存档记录</h3>
       ${checkpointsHtml}
     </div>
 
-    <div id="panel-sos" class="panel">
-      <div class="dict-grid">
-        <div class="dict-card">
-          <h4>🟢 看到 Allow / Accept / Run in Sandbox</h4>
-          <p class="finding-desc">意思是「允许 AI 在当前项目文件夹里干活或跑测试」。只要没有出现 <code>rm -rf /</code> 这种删系统盘字样，放心点同意。</p>
-        </div>
-        <div class="dict-card">
-          <h4>🟡 看到 Bypass Sandbox / Allow Outside Workspace</h4>
-          <p class="finding-desc">意思是「AI 想跨出项目文件夹或联网」。如果不知道它在干嘛，直接点取消/Deny，然后在对话框问它：「请用中文告诉我你刚才为什么要申请外部权限？」</p>
-        </div>
-        <div class="dict-card">
-          <h4>🟠 关机重启后网页打不开 / 报错 EADDRINUSE</h4>
-          <p class="finding-desc">这是因为昨天没启动服务，或者旧窗口占着端口没退干净。直接双击项目文件夹里的 <strong>「双击启动项目.command」</strong>（苹果电脑）或 <strong>「双击启动项目.bat」</strong>（Windows），它会自动清理卡死端口并帮你打开浏览器！</p>
-        </div>
-        <div class="dict-card">
-          <h4>🔵 AI 反问你用什么技术框架（Prisma / JWT / Redis）？</h4>
-          <p class="finding-desc">影子 CTO 已经在底层规则里禁止 AI 问技术黑话了。如果它偶尔犯病，直接回它一句：「你是我的 CTO，技术选型你按最稳妥的拍板，只问我业务规则就行。」</p>
-        </div>
-      </div>
-    </div>
+    <div id="panel-sos" class="panel">${buildSosPanelHtml()}</div>
   </div>
 
   <div id="toast" class="toast">✅ 已复制指令！直接去 WorkBuddy / 豆包 / Antigravity 粘贴发送即可</div>
-
-  <script>
-    function showToastMsg(msg) {
-      const t = document.getElementById('toast');
-      if (!t) return;
-      if (msg) t.textContent = msg;
-      t.style.display = 'block';
-      setTimeout(() => { t.style.display = 'none'; }, 2600);
-    }
-    function switchTab(id, btn) {
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('panel-' + id).classList.add('active');
-      btn.classList.add('active');
-    }
-    function filterPrompts(cat, btn) {
-      document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
-      if (btn && btn.classList) btn.classList.add('active');
-      document.querySelectorAll('.prompt-card').forEach(card => {
-        const c = card.getAttribute('data-pcat');
-        card.style.display = (cat === 'all' || c === cat) ? 'block' : 'none';
-      });
-    }
-    function fillStarterIdea(val) {
-      const inp = document.getElementById('starter-idea-input');
-      if (inp) inp.value = val;
-    }
-    function getSelectedAudience() {
-      const checked = document.querySelector('input[name="starter-audience"]:checked');
-      return checked ? checked.value : 'self';
-    }
-    function copyZeroToOneKickoff() {
-      const inp = document.getElementById('starter-idea-input');
-      const idea = inp && inp.value && inp.value.trim() ? inp.value.trim() : '做一个简洁实用的全栈网页小工具，支持真实保存数据';
-      const aud = getSelectedAudience();
-      const prompt = [
-        '我是零基础的 Vibe Coding 新手，我脑子里目前只有这个零碎想法：「' + idea + '」（使用场景：' + aud + '）。',
-        '请你先调用 ghost_incubate_idea（如果当前是空文件夹请传 bootstrap=true 一键铺好零出错底座！）生成 .vibe/blueprint.md，并严格按以下方式带我做出来：',
-        '1. 我说不清楚细节，请你替我把技术选型全拍板好（Node.js + SQLite 真实落库），如果需要确认业务细节，每次只问我 1 个最简单的大白话选择题（最多 3 问）。',
-        '2. 必须在零出错防崩底座上一步步演进，严禁写内存假数组，严禁乱引容易报错的外部复杂包。',
-        '3. 每次写完代码后，你必须自己调用 ghost_verify_code 检查所有 JS 和 HTML 脚本语法 0 报错，再让我双击《双击启动项目》看效果！'
-      ].join('\\n');
-      copySafe(prompt);
-    }
-    function livePreviewIncubate() {
-      const inp = document.getElementById('starter-idea-input');
-      const out = document.getElementById('incubate-preview-box');
-      const idea = inp && inp.value ? inp.value.trim() : '';
-      if (!out) return;
-      fetch('/__ghost_api/incubate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea, audience: getSelectedAudience() })
-      })
-        .then(r => r.json())
-        .then(d => {
-          if (!d.ok) return;
-          const bp = d.blueprint;
-          out.style.display = 'block';
-          out.textContent = [
-            '🎯 已自动为你理清产品蓝图（并已保存至 .vibe/blueprint.md）：',
-            '• 推荐作品名：' + bp.appName + ' （' + bp.archetypeLabel + '）',
-            '• 第一版自动配齐的 4 个核心功能：',
-            '  1) ' + bp.coreFeatures[0],
-            '  2) ' + bp.coreFeatures[1],
-            '  3) ' + bp.coreFeatures[2],
-            '  4) ' + bp.coreFeatures[3],
-            '• 自动设计的真实 SQLite 数据表：' + bp.tableName + '（含：' + bp.labels.titleLabel + ' / ' + bp.labels.subLabel + ' / ' + bp.labels.amountLabel + '）',
-            '• 防翻车保护：已自动砍掉第一版容易报错的支付/短信/重型依赖！',
-            '👉 现在直接点上方绿色按钮【🚀 第2步：一键生成 97分零出错真项目底座】，1 秒就能生成真能跑的软件！'
-          ].join('\\n');
-        });
-    }
-    function liveBootstrapGoldenApp() {
-      const inp = document.getElementById('starter-idea-input');
-      const idea = inp && inp.value ? inp.value.trim() : '';
-      showToastMsg('⏳ 正在根据你的零碎想法铺设 97 分零出错真数据库项目底座...');
-      fetch('/__ghost_api/bootstrap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idea, audience: getSelectedAudience() })
-      })
-        .then(r => r.json())
-        .then(d => {
-          if (d.ok) {
-            showToastMsg(d.message || '🎉 零出错底座已生成！');
-            setTimeout(() => window.location.reload(), 900);
-          }
-        });
-    }
-    function liveVerifyCode() {
-      showToastMsg('⏳ 正在本地 0-Token 检查全部 JS / HTML / JSON 语法与真假契约...');
-      fetch('/__ghost_api/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}'
-      })
-        .then(r => r.json())
-        .then(d => {
-          if (!d.ok || !d.verification) return;
-          const v = d.verification;
-          if (v.ok) {
-            showToastMsg('🎉 零出错门禁全绿通过！共检查 ' + v.filesChecked + ' 个代码文件，0 语法错误、0 致命假功能！');
-          } else {
-            copySafe(v.aiFixPrompt);
-            showToastMsg('⚠️ 抓到 ' + (v.syntaxErrors.length + v.p0Findings.length) + ' 个错误！已自动复制精准修复指令，快去粘贴给 AI 秒修！');
-          }
-        });
-    }
-    function copySafe(text) {
-      const okMsg = '✅ 已复制指令！直接去 WorkBuddy / 豆包 / Antigravity 粘贴发送即可';
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => showToastMsg(okMsg)).catch(() => fallbackCopy(text, () => showToastMsg(okMsg)));
-      } else {
-        fallbackCopy(text, () => showToastMsg(okMsg));
-      }
-    }
-    function fallbackCopy(text, cb) {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      try { document.execCommand('copy'); cb(); } catch (e) {}
-      document.body.removeChild(ta);
-    }
-    document.querySelectorAll('.copy-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const topicInput = document.getElementById('boss-topic-input');
-        const customVal = topicInput && topicInput.value ? topicInput.value.trim() : '';
-        const tpl = btn.getAttribute('data-template');
-        let text = btn.getAttribute('data-copy');
-        if (tpl && customVal) {
-          text = tpl.split('__BOSS_TOPIC__').join(customVal);
-        }
-        if (!text) return;
-        copySafe(text);
-      });
-    });
-
-    // Auto-detect Live Interactive Daemon (ghost-cto studio / 打开实时驾驶舱)
-    if (typeof window !== 'undefined' && window.location && /^https?:$/i.test(window.location.protocol) && typeof fetch === 'function') {
-      fetch('/__ghost_api/ping')
-        .then(r => r.json())
-        .then(data => {
-          if (!data || !data.ok) return;
-          const st = document.getElementById('live-status-text');
-          if (st) {
-            st.className = 'mode-badge-live';
-            st.textContent = '🟢 实时引擎已直连（支持 0-Token 网页一键重测、秒存代码+数据库备份、一键秒回退）';
-          }
-          const btnAudit = document.getElementById('btn-live-audit');
-          if (btnAudit) btnAudit.style.display = 'inline-block';
-          const saveBox = document.getElementById('live-save-box');
-          if (saveBox) saveBox.style.display = 'block';
-          const impBox = document.getElementById('live-impact-box');
-          if (impBox) impBox.style.display = 'block';
-          document.querySelectorAll('.live-only-btn').forEach(b => { b.style.display = 'inline-block'; });
-        })
-        .catch(() => {});
-    }
-
-    function liveRunAudit() {
-      showToastMsg('⏳ 正在 0-Token 毫秒级重新扫描全栈代码...');
-      fetch('/__ghost_api/audit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
-        .then(r => r.json())
-        .then(d => {
-          if (d.ok) window.location.reload();
-        });
-    }
-    function liveSaveCheckpoint() {
-      const inp = document.getElementById('live-save-label');
-      const label = inp && inp.value ? inp.value.trim() : '驾驶舱网页一键安全备份';
-      fetch('/__ghost_api/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ label })
-      })
-        .then(r => r.json())
-        .then(d => {
-          if (d.ok) {
-            showToastMsg('✅ 双备份存档成功：' + d.id);
-            setTimeout(() => window.location.reload(), 600);
-          }
-        });
-    }
-    function liveRewindCheckpoint(cpId, cpLabel) {
-      if (typeof confirm === 'function' && !confirm('确定要把代码和数据库一起退回到「' + cpLabel + '」吗？（系统会自动先保存一份当前状态的急救备份，绝不丢数据）')) {
-        return;
-      }
-      fetch('/__ghost_api/rewind', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ checkpointId: cpId })
-      })
-        .then(r => r.json())
-        .then(d => {
-          if (d.ok) {
-            showToastMsg('⏪ 已安全回退至 ' + d.restoredId);
-            setTimeout(() => window.location.reload(), 700);
-          }
-        });
-    }
-    function liveQueryImpact() {
-      const inp = document.getElementById('live-impact-input');
-      const out = document.getElementById('live-impact-result');
-      const q = inp && inp.value ? inp.value.trim() : '';
-      if (!q || !out) return;
-      fetch('/__ghost_api/impact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q })
-      })
-        .then(r => r.json())
-        .then(d => {
-          out.style.display = 'block';
-          out.textContent = d.ok ? d.founderMarkdown : ('查询提示：' + d.error);
-        });
-    }
-  </script>
+  <script>${buildDashboardClientJs()}</script>
 </body>
 </html>`;
 
@@ -790,182 +356,4 @@ export function generateBossDashboard(workspace, audit) {
   fs.writeFileSync(vibeOutPath, html, 'utf8');
 
   return { rootOutPath: reportOutPath, vibeOutPath };
-}
-
-/**
- * Generate self-healing double-click launcher scripts (`双击启动项目.command` & `双击启动项目.bat`)
- * keeping the user's project root 100% clean, zero-dependency offline-fast, and friendly even before Step 1!
- */
-export function generateSelfHealingLaunchers(workspace) {
-  const runtime = detectRuntimeTopology(workspace);
-  const primaryPort = runtime.ports.length > 0 ? runtime.ports[runtime.ports.length - 1] : 3090;
-  const portsStr = runtime.ports.join(' ');
-
-  const staleBuildCmds = workspace.staleBuilds
-    .map(sb => sb.buildCmd || (sb.appDir === '.' ? 'npm run build' : `npm --prefix "${sb.appDir}" run build`))
-    .join('\n');
-
-  const macScript = `#!/bin/bash
-cd "$(dirname "$0")"
-export PATH="/opt/homebrew/bin:/usr/local/bin:$HOME/.volta/bin:$HOME/.fnm/current/bin:$PATH"
-if ! command -v node >/dev/null 2>&1 && [ -d "$HOME/.nvm/versions/node" ]; then
-  NVM_LATEST=$(ls -d "$HOME/.nvm/versions/node/"* 2>/dev/null | tail -n 1)
-  [ -n "$NVM_LATEST" ] && export PATH="$NVM_LATEST/bin:$PATH"
-fi
-
-echo "===================================================="
-echo "🛡️ 影子 CTO (GhostCTO) 自愈式一键启动器"
-echo "项目：${runtime.projectName}"
-echo "===================================================="
-
-if ! command -v node >/dev/null 2>&1; then
-  echo "❌ 尚未检测到免费运行环境 Node.js（装一次终身可用）。"
-  BTN=$(osascript -e 'button returned of (display dialog "电脑还差一个免费的底层运行环境 Node.js（1分钟即可装好）。\\n\\n点击下方按钮打开官网，下载左侧 LTS 版本一路点下一步安装即可！" buttons {"稍后", "打开 Node.js 官网下载"} default button 2 with title "影子 CTO 环境提示")' 2>/dev/null || echo "")
-  [ "$BTN" = "打开 Node.js 官网下载" ] && open "https://nodejs.org/zh-cn"
-  exit 1
-fi
-
-if [ ! -f "package.json" ] && [ ! -f "src/server.mjs" ] && [ ! -f "main.py" ] && [ ! -f "app.py" ] && [ ! -f "index.html" ]; then
-  echo ""
-  echo "🌱 当前新项目的防崩护栏已经装好啦，还没有生成产品代码哦！"
-  echo "👉 下一步超简单："
-  echo "   1. 打开 豆包 / Trae / 腾讯 WorkBuddy / Cursor，点击「打开文件夹」选中当前文件夹；"
-  echo "   2. 在聊天框直接用大白话告诉 AI 你想做什么（例如：我想做个美甲会员预约小工具）；"
-  echo "   3. 等 AI 替你铺好第一版后，再回来双击我就能直接打开网页体验啦！"
-  echo ""
-  osascript -e 'display dialog "🌱 保护护栏已就绪！\\n\\n请先用 豆包 / Trae / WorkBuddy / Cursor 打开本文件夹，在聊天框告诉 AI 你想做什么。等第一版生成后再双击启动即可！" buttons {"明白啦"} default button 1 with title "影子 CTO 温馨提示"' >/dev/null 2>&1 || true
-  exit 0
-fi
-
-for PORT in ${portsStr || primaryPort}; do
-  PID=$(lsof -ti tcp:$PORT 2>/dev/null)
-  if [ -n "$PID" ]; then
-    echo "🧹 发现端口 $PORT 被旧进程占用，正在自动清理..."
-    kill -9 $PID 2>/dev/null || true
-  fi
-done
-
-if [ -f "package.json" ] && [ ! -d "node_modules" ] && grep -Eq '"(dependencies|devDependencies)"' package.json; then
-  echo "📦 首次运行，正在安装项目依赖包..."
-  npm install
-fi
-
-if [ -f ".vibe/engine/bin/ghost-cto.mjs" ]; then
-  VERIFY_ERR=$(node ".vibe/engine/bin/ghost-cto.mjs" verify --syntax-only --dir "$(pwd)" 2>&1 >/dev/null || true)
-  if [ -n "$VERIFY_ERR" ]; then
-    echo "$VERIFY_ERR"
-    printf "我的项目启动前抓到了以下错误，请精准修复并通过 verify：\\n%s\\n" "$VERIFY_ERR" | pbcopy 2>/dev/null || true
-    CHOICE=$(osascript -e 'button returned of (display dialog "🛡️ 影子 CTO 抓到 AI 刚才写漏了一个代码错误（已自动把精准修复话术复制到您的剪贴板）！\\n\\n您可以：\\n1. 去聊天框直接粘贴（Cmd+V）让 AI 秒修；\\n2. 或者点「一键退回上一版并启动」立刻恢复正常使用！" buttons {"去粘贴让AI修", "⏪ 一键退回上一版并启动"} default button 2 with title "🛡️ 影子 CTO 防崩拦截")' 2>/dev/null || echo "")
-    if [ "$CHOICE" = "⏪ 一键退回上一版并启动" ]; then
-      node ".vibe/engine/bin/ghost-cto.mjs" rewind latest --dir "$(pwd)"
-    else
-      exit 1
-    fi
-  fi
-fi
-
-${staleBuildCmds ? `echo "🔨 正在同步最新界面打包文件..."\n${staleBuildCmds} || true` : '# 无需静态预打包'}
-
-if [ -f "miniprogram/project.config.json" ]; then
-  echo "📱 检测到本项目已同步生成【微信小程序原生端】(miniprogram/ 目录)！"
-  echo "   保持本窗口开启，用免费的「微信开发者工具」导入本项目里的 miniprogram 文件夹即可真机预览小程序！"
-fi
-
-(sleep 1.2 && open "http://127.0.0.1:${primaryPort}") &
-
-echo "🚀 服务启动中！浏览器即将自动打开 http://127.0.0.1:${primaryPort}"
-echo "（保持本窗口开启即可使用，关闭本窗口即停止服务）"
-if [ -f "src/server.mjs" ] && ! grep -Eq '"dependencies"' package.json 2>/dev/null; then
-  node src/server.mjs
-else
-  ${runtime.startCmd}
-fi
-`;
-
-  const winScript = `@echo off
-chcp 65001 >nul
-cd /d "%~dp0"
-echo ====================================================
-echo [GhostCTO] 影子 CTO 自愈式一键启动器
-echo 项目：${runtime.projectName}
-echo ====================================================
-
-where node >nul 2>&1
-if errorlevel 1 (
-  echo [环境提示] 尚未检测到免费的底层运行环境 Node.js（1分钟即可安装）。
-  echo 正在为您打开 Node.js 中文官网，请下载 LTS 版本安装后再双击启动！
-  start "" "https://nodejs.org/zh-cn"
-  pause
-  exit /b 1
-)
-
-if not exist "package.json" if not exist "src\\server.mjs" if not exist "main.py" if not exist "app.py" (
-  echo.
-  echo [温馨提示] 当前新项目的防崩护栏已装好，尚未生成产品代码！
-  echo 请先用 豆包 / Trae / 腾讯 WorkBuddy / Cursor 打开本文件夹，在聊天框告诉 AI 你想做什么。
-  echo 等 AI 铺好第一版后，再双击本脚本即可自动打开网页！
-  echo.
-  pause
-  exit /b 0
-)
-
-if exist "package.json" (
-  if not exist "node_modules" (
-    findstr /i "\\"dependencies\\" \\"devDependencies\\"" package.json >nul 2>&1
-    if not errorlevel 1 (
-      echo 首次运行，正在安装项目依赖包...
-      call npm install
-    )
-  )
-)
-
-if exist ".vibe\\engine\\bin\\ghost-cto.mjs" (
-  node ".vibe\\engine\\bin\\ghost-cto.mjs" verify --syntax-only --dir "%cd%" >nul
-  if errorlevel 1 (
-    echo.
-    echo [防崩拦截] 检测到 AI 留有语法或依赖缺失错误！请把上方红色报错复制粘贴给 AI 修复，或对 AI 说“退回上一版”。
-    pause
-    exit /b 1
-  )
-)
-
-if exist "miniprogram\\project.config.json" (
-  echo [小程序端已就绪] 保持本窗口开启，用免费的“微信开发者工具”导入 miniprogram 文件夹即可预览小程序！
-)
-
-start "" "http://127.0.0.1:${primaryPort}"
-echo 浏览器正在打开 http://127.0.0.1:${primaryPort} （请保持此窗口开启）
-if exist "src\\server.mjs" (
-  findstr /i "\\"dependencies\\"" package.json >nul 2>&1
-  if errorlevel 1 (
-    node src\\server.mjs
-    pause
-    exit /b 0
-  )
-)
-call ${runtime.startCmd}
-pause
-`;
-
-  const macPath = path.join(workspace.rootDir, '双击启动项目.command');
-  const winPath = path.join(workspace.rootDir, '双击启动项目.bat');
-  const liveMacPath = path.join(workspace.rootDir, '.vibe', '打开体检报告看板.command');
-  const liveWinPath = path.join(workspace.rootDir, '.vibe', '打开体检报告看板.bat');
-  fs.mkdirSync(path.join(workspace.rootDir, '.vibe'), { recursive: true });
-
-  const liveMacScript = `#!/bin/bash\ncd "$(dirname "$0")/.."\nnode ".vibe/engine/bin/ghost-cto.mjs" studio --dir "$(pwd)"\n`;
-  const liveWinScript = `@echo off\nchcp 65001 >nul\ncd /d "%~dp0\\.."\nnode ".vibe\\engine\\bin\\ghost-cto.mjs" studio --dir "%cd%"\npause\n`;
-
-  fs.writeFileSync(macPath, macScript, { encoding: 'utf8', mode: 0o755 });
-  fs.writeFileSync(liveMacPath, liveMacScript, { encoding: 'utf8', mode: 0o755 });
-  try {
-    fs.chmodSync(macPath, 0o755);
-    fs.chmodSync(liveMacPath, 0o755);
-  } catch {
-    // ignore chmod on unsupported fs
-  }
-  fs.writeFileSync(winPath, winScript, 'utf8');
-  fs.writeFileSync(liveWinPath, liveWinScript, 'utf8');
-
-  return { macPath, winPath, liveMacPath, liveWinPath, primaryPort, startCmd: runtime.startCmd };
 }

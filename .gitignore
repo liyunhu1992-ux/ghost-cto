@@ -5,8 +5,20 @@ node_modules/
 .env.*
 !.env.example
 coverage/
-.vibe/
 *上传到GitHub*
+
+# Self-Dogfooding: track portable rules & Stop hook, ignore local state & machine-path MCP configs
+.vibe/*
+!.vibe/ghost-hook-check.mjs
+.mcp.json
+.workbuddy/
+.codebuddy/
+.agents/
+.windsurf/
+.cursor/mcp.json
+.trae/mcp.json
+.trae/skills/
+.claude/skills/
 
 # GhostCTO Safety Rules
 *.sqlite

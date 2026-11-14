@@ -67,7 +67,7 @@ async function main() {
       const targetDir = resolveTargetDir(1);
       const res = installGhostCTO(targetDir, {
         createInitialCheckpoint: flags['no-checkpoint'] ? false : true,
-        allowSelf: Boolean(flags['allow-self'])
+        allowSelf: Boolean(flags['allow-self'] || flags.self)
       });
       console.log(`\n🛡️  GhostCTO（影子 CTO）v2.0.0 已在项目中激活完毕`);
       console.log(`📂 项目目录: ${res.rootDir}`);
@@ -141,8 +141,8 @@ async function main() {
               }
             }
           }
-        } catch {
-          // ignore unreadable binary
+        } catch (err) {
+          if (process.env.GHOST_DEBUG) console.error('[ghost-cto:precommit]', err.message);
         }
       }
 

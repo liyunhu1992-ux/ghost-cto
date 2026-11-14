@@ -1,185 +1,17 @@
 /**
  * GhostCTO Lexical De-noising & Structural Skeleton Engine v2.0
  * Zero-dependency finite-state lexer for JS/JSX/TS/TSX/MJS/HTML/Python/SQL.
- * Preserves exact 1-based line numbers while stripping comments and strings,
- * and natively unwraps HTML <script> blocks & embedded `String.raw` JS scripts!
+ * Preserves exact 1-based line numbers while stripping comments and strings.
  */
+import {
+  extractHtmlScriptsWithLinePreservation,
+  unwrapEmbeddedStringRawScripts,
+  analyzePythonSource
+} from './lexer-python.mjs';
 
 const REGEX_PRECEDING_TOKENS = new Set([
   '(', ',', '=', ':', '[', '!', '&', '|', '?', '{', '}', ';', '\n', '~', '^', '%', '+', '-', '*', '<', '>'
 ]);
-
-/**
- * Mask non-script HTML markup into spaces while preserving exact byte length & newlines.
- */
-function extractHtmlScriptsWithLinePreservation(html) {
-  const chars = new Array(html.length);
-  for (let i = 0; i < html.length; i++) {
-    chars[i] = html[i] === '\n' ? '\n' : ' ';
-  }
-  const scriptRe = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
-  let m;
-  while ((m = scriptRe.exec(html)) !== null) {
-    const fullMatch = m[0];
-    const openTagEnd = fullMatch.indexOf('>') + 1;
-    const bodyStart = m.index + openTagEnd;
-    const bodyEnd = bodyStart + m[1].length;
-    for (let k = bodyStart; k < bodyEnd; k++) {
-      chars[k] = html[k];
-    }
-  }
-  return chars.join('');
-}
-
-/**
- * Unwrap embedded JS scripts stored inside `String.raw\`...\`` (e.g., SSR / static UI builders)
- * into spaces at the outer wrapper while preserving exact byte offsets & 1-based line numbers!
- */
-function unwrapEmbeddedStringRawScripts(source) {
-  if (!source.includes('String.raw`')) return source;
-  const re = /(?:export\s+)?(?:const|let|var)\s+[A-Za-z0-9_]*(?:SCRIPT|JS|CODE)[A-Za-z0-9_]*\s*=\s*String\.raw`([\s\S]*?)`\s*;?/g;
-  let changed = false;
-  const chars = source.split('');
-  let m;
-  while ((m = re.exec(source)) !== null) {
-    const body = m[1];
-    if (!/\b(?:function|const|let|fetch|document|window)\b/.test(body)) continue;
-    changed = true;
-    const fullStart = m.index;
-    const backtickOpen = source.indexOf('`', fullStart);
-    const bodyStart = backtickOpen + 1;
-    const bodyEnd = bodyStart + body.length;
-    const fullEnd = m.index + m[0].length;
-
-    for (let k = fullStart; k < bodyStart; k++) {
-      if (chars[k] !== '\n') chars[k] = ' ';
-    }
-    for (let k = bodyEnd; k < fullEnd; k++) {
-      if (chars[k] !== '\n') chars[k] = ' ';
-    }
-  }
-  return changed ? chars.join('') : source;
-}
-
-/**
- * Dedicated O(N) Python lexer preserving exact 1-based line numbers.
- */
-function analyzePythonSource(source) {
-  const len = source.length;
-  const cleanChars = new Array(len);
-  const skelChars = new Array(len);
-  const strings = [];
-  const lineOffsets = [0];
-
-  let i = 0;
-  let line = 1;
-
-  while (i < len) {
-    const ch = source[i];
-    if (ch === '\n') {
-      cleanChars[i] = '\n';
-      skelChars[i] = '\n';
-      line++;
-      lineOffsets.push(i + 1);
-      i++;
-      continue;
-    }
-
-    // Python `#` comment
-    if (ch === '#') {
-      while (i < len && source[i] !== '\n') {
-        cleanChars[i] = ' ';
-        skelChars[i] = ' ';
-        i++;
-      }
-      continue;
-    }
-
-    // Triple-quoted Python string / docstring `"""..."""` or `'''...'''`
-    const next3 = source.slice(i, i + 3);
-    if (next3 === '"""' || next3 === "'''") {
-      const delim = next3;
-      const start = i;
-      const startLine = line;
-      for (let k = 0; k < 3; k++) {
-        cleanChars[i + k] = delim[0];
-        skelChars[i + k] = delim[0];
-      }
-      i += 3;
-      let val = '';
-      while (i < len) {
-        if (source.slice(i, i + 3) === delim) {
-          for (let k = 0; k < 3; k++) {
-            cleanChars[i + k] = delim[0];
-            skelChars[i + k] = delim[0];
-          }
-          i += 3;
-          break;
-        }
-        if (source[i] === '\n') {
-          val += '\n';
-          cleanChars[i] = '\n';
-          skelChars[i] = '\n';
-          line++;
-          lineOffsets.push(i + 1);
-        } else {
-          val += source[i];
-          cleanChars[i] = source[i];
-          skelChars[i] = ' ';
-        }
-        i++;
-      }
-      strings.push({ value: val, quote: delim, line: startLine, start, end: i });
-      continue;
-    }
-
-    // Single or double quoted Python string
-    if (ch === "'" || ch === '"') {
-      const quote = ch;
-      const start = i;
-      const startLine = line;
-      cleanChars[i] = quote;
-      skelChars[i] = quote;
-      i++;
-      let val = '';
-      while (i < len && source[i] !== '\n') {
-        if (source[i] === '\\' && i + 1 < len) {
-          val += source[i] + source[i + 1];
-          cleanChars[i] = source[i];
-          cleanChars[i + 1] = source[i + 1];
-          skelChars[i] = ' ';
-          skelChars[i + 1] = ' ';
-          i += 2;
-          continue;
-        }
-        if (source[i] === quote) {
-          cleanChars[i] = quote;
-          skelChars[i] = quote;
-          i++;
-          break;
-        }
-        val += source[i];
-        cleanChars[i] = source[i];
-        skelChars[i] = ' ';
-        i++;
-      }
-      strings.push({ value: val, quote, line: startLine, start, end: i });
-      continue;
-    }
-
-    cleanChars[i] = ch;
-    skelChars[i] = ch;
-    i++;
-  }
-
-  return {
-    cleanCode: cleanChars.join(''),
-    skeleton: skelChars.join(''),
-    strings,
-    lineOffsets,
-    totalLines: line
-  };
-}
 
 /**
  * Parse source code in a single O(N) pass, producing:
@@ -223,7 +55,6 @@ export function analyzeSource(rawSource, ext = '.js') {
       continue;
     }
 
-    // 1. Single-line comment: // ...
     if (ch === '/' && next === '/') {
       while (i < len && source[i] !== '\n') {
         cleanChars[i] = ' ';
@@ -233,7 +64,6 @@ export function analyzeSource(rawSource, ext = '.js') {
       continue;
     }
 
-    // 2. Multi-line block comment: /* ... */
     if (ch === '/' && next === '*') {
       cleanChars[i] = ' ';
       skelChars[i] = ' ';
@@ -263,7 +93,6 @@ export function analyzeSource(rawSource, ext = '.js') {
       continue;
     }
 
-    // 3. Single or double quoted string literal
     if (ch === "'" || ch === '"') {
       const quote = ch;
       const start = i;
@@ -316,7 +145,6 @@ export function analyzeSource(rawSource, ext = '.js') {
       continue;
     }
 
-    // 4. Template literal `...${expr}...` (keeps ${expr} tokens in skeleton!)
     if (ch === '`') {
       const start = i;
       const startLine = line;
@@ -391,7 +219,7 @@ export function analyzeSource(rawSource, ext = '.js') {
           if (c === '{') {
             braceStack[braceStack.length - 1]++;
             cleanChars[i] = '{';
-            skelChars[i + 1 - 1] = '{';
+            skelChars[i] = '{';
             i++;
             continue;
           }
@@ -451,7 +279,6 @@ export function analyzeSource(rawSource, ext = '.js') {
       continue;
     }
 
-    // 5. Regex literal /.../flags (only when preceded by operator/punctuation, avoiding JSX </tag>)
     if (ch === '/' && next !== '/' && next !== '*' && next !== '>' && REGEX_PRECEDING_TOKENS.has(lastNonWsChar)) {
       let j = i + 1;
       let inCharClass = false;
@@ -508,9 +335,6 @@ export function analyzeSource(rawSource, ext = '.js') {
   };
 }
 
-/**
- * Binary search 0-based byte index -> 1-based line number.
- */
 export function indexToLine(lineOffsets, index) {
   let lo = 0;
   let hi = lineOffsets.length - 1;
@@ -525,10 +349,6 @@ export function indexToLine(lineOffsets, index) {
   return hi + 1;
 }
 
-/**
- * Given `skeleton` (strings & comments stripped) and the index of `{`,
- * returns the matching `}` index, or -1 if unbalanced.
- */
 export function findMatchingBrace(skeleton, openIndex) {
   if (skeleton[openIndex] !== '{') return -1;
   let depth = 0;
@@ -542,11 +362,6 @@ export function findMatchingBrace(skeleton, openIndex) {
   return -1;
 }
 
-/**
- * Conservative multilingual BPE token estimator calibrated against Gemini/Claude/Tiktoken:
- * - CJK / non-ASCII ideographs: ~1.55 tokens per character
- * - ASCII words/code/punctuation: ~0.28 tokens per character (~3.6 chars/token)
- */
 export function estimateTokens(text) {
   if (!text) return 0;
   let cjkCount = 0;
