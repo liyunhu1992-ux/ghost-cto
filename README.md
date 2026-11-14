@@ -11,12 +11,17 @@
 [![Zero Dependencies](https://img.shields.io/badge/外部依赖-0_(纯_Node.js_内置模块)-059669?style=flat-square)](#)
 [![Self Dogfooding](https://img.shields.io/badge/自举体检得分-100%2F100_(GhostCTO_管控自身)-059669?style=flat-square)](#)
 [![Always-On Prompt](https://img.shields.io/badge/常驻路由体积-402_Tokens_(命中90%25前缀缓存)-7C3AED?style=flat-square)](#)
-[![Tests](https://img.shields.io/badge/自动化与对抗测试-17%2F17_全绿通过-2563EB?style=flat-square)](#)
+[![Tests](https://img.shields.io/badge/自动化与对抗测试-19%2F19_全绿通过-2563EB?style=flat-square)](#)
 [![License: MIT](https://img.shields.io/badge/开源协议-MIT_(100%25免费开源)-18181B?style=flat-square)](./LICENSE)
 
 [**📖 与 AI 对话全链路手册**](./小白与AI对话全链路通关手册.md) ｜ [**安装与配置指南**](./INSTALL.md) ｜ [**英文弹窗急救词典**](./docs/POPUP_DICTIONARY.md) ｜ [**English README**](./README.en.md) ｜ [**安全说明**](./SECURITY.md)
 
 </div>
+
+> **💡 零基础小白 10 秒看懂怎么用：**
+> 1. **只装一次**：双击脚本把它装进你的项目文件夹；
+> 2. **平时不用管它**：不用背提示词，也不用看复杂报表，直接在 AI 聊天框照常说大白话提需求就行（自动存档与防改崩已在后台静默保护）；
+> 3. **改坏了一键退回**：万一 AI 把页面改乱了，对 AI 说一句**「退回上一版」**（或打开体检页点**「退回这一版」**），代码和数据一起恢复。
 
 <p align="center">
   <img src="./docs/zero-to-five-flow.svg" width="100%" alt="GhostCTO 从 0 到 5 聊天框全链路守护图" />
@@ -64,7 +69,7 @@ cd ghost-cto
 npm run self:verify
 npm run self:audit
 
-# 2. 运行全部 17 组单元测试、破坏性对抗测试与自举锁死测试
+# 2. 运行全部 19 组单元测试、破坏性对抗测试与自举锁死测试
 npm test
 
 # 3. 为你的新项目或已有项目接入护栏

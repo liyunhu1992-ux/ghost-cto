@@ -29,5 +29,5 @@ node "%SCRIPT_DIR%bin\ghost-cto.mjs" init "%TARGET_DIR%"
 node "%SCRIPT_DIR%bin\ghost-cto.mjs" doctor "%TARGET_DIR%"
 
 echo.
-echo 接入完成！现在用 WorkBuddy / 豆包 / Trae / Antigravity / Cursor 打开该项目即可！
+echo [保护已开启] 平时什么按钮都不用额外点，直接在 AI 聊天框照常说大白话提需求就行；万一改乱了，对 AI 说一句“退回上一版”即可恢复！
 pause

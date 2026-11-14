@@ -36,7 +36,7 @@ node "$SCRIPT_DIR/bin/ghost-cto.mjs" init "$TARGET_DIR"
 xattr -cr "$TARGET_DIR" 2>/dev/null || true
 node "$SCRIPT_DIR/bin/ghost-cto.mjs" doctor "$TARGET_DIR"
 
-osascript -e "display dialog \"🎉 影子 CTO 保护护栏已接入您的项目！\\n\\n现在用 豆包 / Trae / WorkBuddy / Cursor 打开该项目文件夹，直接说「帮我做一次全面体检」或正常提修改需求即可！\" buttons {\"好的\"} default button 1 with title \"🛡️ 接入完成\"" >/dev/null 2>&1 || true
+osascript -e "display dialog \"✅ 已为您的项目开启自动备份与防改崩保护！\\n\\n接下来怎么做？\\n1. 平时什么按钮都不用额外点，直接在 AI 聊天框照常说大白话提需求就行；\\n2. 万一 AI 把项目改乱了，对 AI 说一句「退回上一版」就能连代码带数据一起恢复。\" buttons {\"明白啦\"} default button 1 with title \"🛡️ 保护已开启\"" >/dev/null 2>&1 || true
 
 echo ""
-echo "🎉 接入完成！现在用 WorkBuddy / 豆包 / Trae / Antigravity / Cursor 打开该项目即可！"
+echo "✅ 保护已开启！平时什么都不用额外点，直接在 AI 聊天框照常说大白话提需求即可；改坏了说一句「退回上一版」就能恢复。"

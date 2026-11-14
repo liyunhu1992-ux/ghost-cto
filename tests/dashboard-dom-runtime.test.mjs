@@ -211,6 +211,35 @@ test('Interactive DOM, 5-Tab Switching & Live Master Prompt Injection in 老板�
 
     const res = installGhostCTO(tmpRoot);
     verifyDashboardHtmlInteractivity(res.dashboardPath);
+
+    // P0 project must surface urgent fix action right in the primary card
+    const brokenHtml = fs.readFileSync(res.dashboardPath, 'utf8');
+    const brokenPrimary = brokenHtml.match(/<section class="primary-card">[\s\S]*?<\/section>/)?.[0] || '';
+    assert.ok(brokenPrimary.includes('点右边按钮复制话术，发给 AI 就能修好'));
+    assert.ok(brokenPrimary.includes('复制这句话发给 AI'));
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('Beginner Clarity Gate: Healthy project with only P2 developer notes shows calm zero-action card without black fix buttons', () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ghost-calm-ui-'));
+  try {
+    fs.mkdirSync(path.join(tmpRoot, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(tmpRoot, 'package.json'), JSON.stringify({ name: 'calm-project' }), 'utf8');
+    // 620-line valid file triggers only a P2 file-size note (0 P0, 0 P1)
+    const lines = Array.from({ length: 620 }, (_, i) => `export const v${i} = ${i};`).join('\n');
+    fs.writeFileSync(path.join(tmpRoot, 'src/large.mjs'), lines, 'utf8');
+
+    const res = installGhostCTO(tmpRoot);
+    const html = fs.readFileSync(res.dashboardPath, 'utf8');
+    const primaryCard = html.match(/<section class="primary-card">[\s\S]*?<\/section>/)?.[0] || '';
+
+    assert.ok(primaryCard.includes('一切正常，现在什么都不用点'), 'Healthy project must tell beginner nothing needs clicking');
+    assert.equal(primaryCard.includes('copy-btn'), false, 'Healthy primary card must NOT show any copy-fix prompt button');
+    assert.equal(primaryCard.includes('src/large.mjs'), false, 'P2 file coordinates must NOT clutter primary card');
+    assert.ok(html.includes('<details class="more-drawer">'), 'Advanced details must be tucked inside collapsed drawer');
+    verifyDashboardHtmlInteractivity(res.dashboardPath);
   } finally {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
